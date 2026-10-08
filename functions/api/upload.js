@@ -23,18 +23,18 @@ export async function onRequest(context) {
                 formData.append('url', body.url);
                 catboxRes = await fetch('https://catbox.moe/user/api.php', {
                     method: 'POST',
-                    body: formData,
-                    headers: { 'User-Agent': 'Cloudflare-Pages-Proxy' }
+                    body: formData
                 });
             } else {
                 return new Response(JSON.stringify({ error: "Invalid json body" }), { status: 400 });
             }
         } else {
-            const formData = await request.formData();
+            // Forward raw body and content-type for multipart/form-data
             catboxRes = await fetch('https://catbox.moe/user/api.php', {
                 method: 'POST',
-                body: formData,
-                headers: { 'User-Agent': 'Cloudflare-Pages-Proxy' }
+                body: request.body,
+                headers: { 'Content-Type': contentType },
+                duplex: 'half'
             });
         }
 
