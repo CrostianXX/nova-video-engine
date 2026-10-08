@@ -16,8 +16,19 @@ def download_image(url, filename="start.jpg"):
     print(f"Mendownload gambar awal dari: {url}")
     with httpx.Client(follow_redirects=True) as client:
         r = client.get(url)
+        content = r.content
+        # Cek apakah ini HTML dari tmpfiles.org
+        if b"tmpfiles.org" in content and b"<img id=\"img_preview\"" in content:
+            import re
+            match = re.search(r'<img\s+id="img_preview"\s+src="([^"]+)"', content.decode('utf-8', errors='ignore'))
+            if match:
+                real_url = match.group(1)
+                print(f"URL asli gambar tmpfiles: {real_url}")
+                r = client.get(real_url)
+                content = r.content
+        
         with open(filename, 'wb') as f:
-            f.write(r.content)
+            f.write(content)
     return filename
 
 def extract_last_frame(video_path, output_image_path):
