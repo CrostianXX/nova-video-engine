@@ -434,22 +434,19 @@ const I2V = {
             if (this.isCancelled) return;
             if (lt) lt.innerHTML = `Membangunkan Mesin Pabrik...<br><span style="font-size: 11px; opacity: 0.8; font-weight: normal;">Tahap 2/3</span>`;
             
-            const PAT = "ghp_ZaWZv2u" + "9BFYE4Mnh2ZEy" + "7Z2yeoti8X06ZnVs";
-            
-            const ghTriggerRes = await fetch('https://corsproxy.io/?' + encodeURIComponent('https://api.github.com/repos/CrostianXX/nova-video-engine/actions/workflows/mesin.yml/dispatches'), {
+            // 2. Trigger GitHub Action
+            const ghTriggerRes = await fetch('/api/github', {
                 method: 'POST',
-                headers: {
-                    'Accept': 'application/vnd.github+json',
-                    'Authorization': 'Bearer ' + PAT,
-                    'X-GitHub-Api-Version': '2022-11-28',
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    ref: 'main',
-                    inputs: {
-                        prompt: prompt,
-                        loops: Math.ceil(this.settings.duration / 5).toString(),
-                        image_url: imageUrl
+                    action: 'trigger',
+                    payload: {
+                        ref: 'main',
+                        inputs: {
+                            prompt: prompt,
+                            loops: Math.ceil(this.settings.duration / 5).toString(),
+                            image_url: imageUrl
+                        }
                     }
                 })
             });
@@ -460,8 +457,10 @@ const I2V = {
             
             // Wait 5 seconds to get the new run ID
             await new Promise(r => setTimeout(r, 5000));
-            const runsRes = await fetch('https://corsproxy.io/?' + encodeURIComponent('https://api.github.com/repos/CrostianXX/nova-video-engine/actions/runs?per_page=1'), {
-                headers: { 'Authorization': 'Bearer ' + PAT }
+            const runsRes = await fetch('/api/github', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'get_runs' })
             });
             const runsData = await runsRes.json();
             const runId = runsData.workflow_runs[0].id;
@@ -473,8 +472,10 @@ const I2V = {
             while(true) {
                 if (this.isCancelled) return;
                 
-                const statusRes = await fetch('https://corsproxy.io/?' + encodeURIComponent(`https://api.github.com/repos/CrostianXX/nova-video-engine/actions/runs/${runId}`), {
-                    headers: { 'Authorization': 'Bearer ' + PAT }
+                const statusRes = await fetch('/api/github', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'get_run_status', payload: { runId: runId } })
                 });
                 const statusData = await statusRes.json();
                 
