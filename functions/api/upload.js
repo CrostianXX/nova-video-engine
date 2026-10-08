@@ -18,37 +18,39 @@ export async function onRequest(context) {
         if (contentType.includes("application/json")) {
             const body = await request.json();
             if (body.reqtype === "urlupload" && body.url) {
-                formData = new FormData();
-                formData.append('image', body.url);
+                // Not strictly needed if we don't use urlupload anymore
+                return new Response(JSON.stringify({ error: "URL upload not supported" }), { status: 400 });
             } else {
                 return new Response(JSON.stringify({ error: "Invalid json body" }), { status: 400 });
             }
         } else {
-            // ImgBB needs 'image' field, while our frontend sends 'fileToUpload' or 'file'
             const reqFormData = await request.formData();
             formData = new FormData();
             const file = reqFormData.get('fileToUpload') || reqFormData.get('file');
             if (file) {
-                formData.append('image', file);
+                formData.append('file', file);
             } else {
                 return new Response(JSON.stringify({ error: "Missing image file" }), { status: 400 });
             }
         }
 
-        const imgbbRes = await fetch('https://api.imgbb.com/1/upload?key=d3b0e9fd43ff0eb762987129a2f21e9c', {
+        const envsRes = await fetch('https://envs.sh', {
             method: 'POST',
             body: formData
         });
 
-        const data = await imgbbRes.json();
-        if (!imgbbRes.ok || !data.success) {
-            return new Response(JSON.stringify({ error: "Failed to upload to server", details: JSON.stringify(data) }), { 
-                status: imgbbRes.status || 400,
+        if (!envsRes.ok) {
+            const errText = await envsRes.text();
+            return new Response(JSON.stringify({ error: "Failed to upload to server", details: errText }), { 
+                status: envsRes.status || 400,
                 headers: { "Access-Control-Allow-Origin": "*" } 
             });
         }
 
-        return new Response(JSON.stringify({ url: data.data.url }), {
+        let url = await envsRes.text();
+        url = url.trim();
+
+        return new Response(JSON.stringify({ url: url }), {
             headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
         });
 
