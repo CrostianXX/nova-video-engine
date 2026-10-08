@@ -306,42 +306,51 @@ def extract_last_frame(video_path, output_image_path):
     return output_image_path
 
 def generate_video_clip(prompt, input_image):
-    token = random.choice(TOKENS)
-    print(f"Menghubungkan ke AI Video dengan token {token[:8]}...")
-    
-    client = Client("Saravutw/WAN2.2_I2V_LIGHTNING_4-8step_custom", token=token)
-    image_arg = handle_file(input_image)
-    
-    # Python gradio_client strict validation bypass
-    # We pass the same image for both input_image and last_image
-    result = client.predict(
-        image_arg,              # Input Image
-        image_arg,              # Last Image
-        prompt,                 # Prompt Text
-        4,                      # Inference Steps
-        "blurry, chaotic, bad quality", # Negative
-        5.0,                    # Duration (Float)
-        1.0,                    # Guidance Scale 1
-        1.0,                    # Guidance Scale 2
-        42,                     # Seed
-        True,                   # Randomize seed
-        5,                      # Video Quality
-        "UniPCMultistep",       # Scheduler
-        3.0,                    # Flow Shift
-        16,                     # frame_multiplier (int)
-        False,                  # Safe Mode
-        True,                   # video_component
-        api_name="/generate_video"
-    )
-    
-    if isinstance(result, tuple) or isinstance(result, list):
-        for r in result:
-            if isinstance(r, dict) and 'video' in r:
-                return r['video']
-            if isinstance(r, str) and (r.endswith('.mp4') or r.endswith('.webm')):
-                return r
-        return result[0]['video'] if isinstance(result[0], dict) else result[0]
-    return result
+    max_retries = 10
+    for attempt in range(max_retries):
+        token = random.choice(TOKENS)
+        print(f"Menghubungkan ke AI Video dengan token {token[:8]}... (Percobaan {attempt+1}/{max_retries})")
+        
+        try:
+            client = Client("Saravutw/WAN2.2_I2V_LIGHTNING_4-8step_custom", token=token)
+            image_arg = handle_file(input_image)
+            
+            result = client.predict(
+                image_arg,              # Input Image
+                image_arg,              # Last Image
+                prompt,                 # Prompt Text
+                4,                      # Inference Steps
+                "blurry, chaotic, bad quality", # Negative
+                5.0,                    # Duration (Float)
+                1.0,                    # Guidance Scale 1
+                1.0,                    # Guidance Scale 2
+                42,                     # Seed
+                True,                   # Randomize seed
+                5,                      # Video Quality
+                "UniPCMultistep",       # Scheduler
+                3.0,                    # Flow Shift
+                16,                     # frame_multiplier (int)
+                False,                  # Safe Mode
+                True,                   # video_component
+                api_name="/generate_video"
+            )
+            
+            if isinstance(result, tuple) or isinstance(result, list):
+                for r in result:
+                    if isinstance(r, dict) and 'video' in r:
+                        return r['video']
+                    if isinstance(r, str) and (r.endswith('.mp4') or r.endswith('.webm')):
+                        return r
+                return result[0]['video'] if isinstance(result[0], dict) else result[0]
+            return result
+            
+        except Exception as e:
+            if "ZeroGPU quota" in str(e) or "quota" in str(e).lower() or "forbidden" in str(e).lower():
+                print(f"Token {token[:8]} limit/error, mencoba token lain...")
+                continue
+            else:
+                raise e
+    raise Exception("Semua percobaan token gagal karena limit GPU.")
 
 def main():
     if len(sys.argv) < 4:
