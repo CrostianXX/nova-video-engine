@@ -693,9 +693,9 @@ const Pinterest = {
         try {
             let blob = null;
             
-            // Coba lewat proxy internal
+            // Coba lewat proxy corsproxy.org yang baru
             try {
-                const proxyUrl = `/api/proxy?url=${encodeURIComponent(url)}`;
+                const proxyUrl = `https://corsproxy.org/?${encodeURIComponent(url)}`;
                 const response = await fetch(proxyUrl);
                 if (response.ok) {
                     blob = await response.blob();

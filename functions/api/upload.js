@@ -12,42 +12,43 @@ export async function onRequest(context) {
     }
 
     try {
-        let catboxRes;
+        let formData;
         const contentType = request.headers.get("content-type") || "";
         
         if (contentType.includes("application/json")) {
             const body = await request.json();
             if (body.reqtype === "urlupload" && body.url) {
-                const formData = new FormData();
-                formData.append('reqtype', 'urlupload');
-                formData.append('url', body.url);
-                catboxRes = await fetch('https://catbox.moe/user/api.php', {
-                    method: 'POST',
-                    body: formData
-                });
+                formData = new FormData();
+                formData.append('image', body.url);
             } else {
                 return new Response(JSON.stringify({ error: "Invalid json body" }), { status: 400 });
             }
         } else {
-            // Forward raw body and content-type for multipart/form-data
-            catboxRes = await fetch('https://catbox.moe/user/api.php', {
-                method: 'POST',
-                body: request.body,
-                headers: { 'Content-Type': contentType },
-                duplex: 'half'
-            });
+            // ImgBB needs 'image' field, while our frontend sends 'fileToUpload' or 'file'
+            const reqFormData = await request.formData();
+            formData = new FormData();
+            const file = reqFormData.get('fileToUpload') || reqFormData.get('file');
+            if (file) {
+                formData.append('image', file);
+            } else {
+                return new Response(JSON.stringify({ error: "Missing image file" }), { status: 400 });
+            }
         }
 
-        if (!catboxRes.ok) {
-            const errText = await catboxRes.text();
-            return new Response(JSON.stringify({ error: "Failed to upload to catbox", details: errText }), { 
-                status: catboxRes.status,
+        const imgbbRes = await fetch('https://api.imgbb.com/1/upload?key=d3b0e9fd43ff0eb762987129a2f21e9c', {
+            method: 'POST',
+            body: formData
+        });
+
+        const data = await imgbbRes.json();
+        if (!imgbbRes.ok || !data.success) {
+            return new Response(JSON.stringify({ error: "Failed to upload to server", details: JSON.stringify(data) }), { 
+                status: imgbbRes.status || 400,
                 headers: { "Access-Control-Allow-Origin": "*" } 
             });
         }
 
-        const url = await catboxRes.text();
-        return new Response(JSON.stringify({ url: url.trim() }), {
+        return new Response(JSON.stringify({ url: data.data.url }), {
             headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
         });
 
