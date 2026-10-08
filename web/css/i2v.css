@@ -1,0 +1,241 @@
+/* ============================================================
+   NOVA — I2V Page (Light Theme)
+   ============================================================ */
+
+.i2v-container {
+    height: calc(100vh - var(--header-height)); display: flex; flex-direction: column;
+}
+
+.i2v-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 28px; border-bottom: 1px solid var(--border-color);
+    background: var(--bg-secondary); backdrop-filter: blur(12px);
+}
+
+.i2v-workspace {
+    flex: 1; display: grid; grid-template-columns: 1fr 1.3fr 280px;
+    gap: 0; overflow: hidden;
+}
+
+.i2v-panel {
+    padding: 18px; overflow-y: auto; display: flex; flex-direction: column;
+}
+
+.i2v-panel h3 { font-size: 0.85rem; font-weight: 600; margin-bottom: 10px; }
+
+.i2v-upload-panel { border-right: 1px solid var(--border-color); }
+.i2v-upload-panel .upload-zone { flex: 1; min-height: 240px; }
+
+.change-image-btn { margin-top: 8px; align-self: flex-start; }
+
+.i2v-preview-panel { border-right: 1px solid var(--border-color); }
+.i2v-settings-panel { gap: 0; background: var(--bg-tertiary); }
+
+/* ---- Video Preview ---- */
+.video-preview-container {
+    flex: 1; min-height: 240px; border-radius: var(--border-radius-lg); overflow: hidden;
+    background: var(--bg-surface); border: 1px solid var(--border-color);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    position: relative;
+}
+
+.video-placeholder {
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+    color: var(--text-tertiary); padding: 36px;
+}
+
+.video-placeholder svg { opacity: 0.15; color: var(--accent-blue); }
+.video-placeholder p { font-size: 0.78rem; }
+
+#videoPreview { width: 100%; height: 100%; object-fit: contain; background: var(--bg-primary); }
+
+.video-controls {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
+    padding: 18px 14px 10px;
+}
+
+.video-progress {
+    height: 3px; background: rgba(255,255,255,0.2); border-radius: 2px;
+    margin-bottom: 6px; cursor: pointer;
+}
+
+.video-progress-bar {
+    height: 100%; background: var(--accent-blue); border-radius: 2px; width: 0%;
+}
+
+.video-time { font-size: 0.68rem; color: rgba(255,255,255,0.7); }
+
+.video-actions { display: flex; gap: 8px; margin-top: 8px; }
+
+/* ---- Settings ---- */
+.settings-group {
+    padding: 12px 0; border-bottom: 1px solid var(--border-color);
+}
+
+.settings-group:last-of-type { border-bottom: none; }
+.settings-group h3 { font-size: 0.78rem; margin-bottom: 8px; font-weight: 600; color: var(--text-secondary); }
+
+.fps-options { display: flex; gap: 5px; }
+
+.fps-btn {
+    flex: 1; padding: 7px; border-radius: var(--border-radius-sm); font-size: 0.75rem;
+    font-weight: 600; color: var(--text-secondary); background: white;
+    border: 1px solid var(--border-color); transition: all var(--transition-fast);
+}
+
+.fps-btn:hover { color: var(--text-primary); }
+
+.fps-btn.active {
+    color: white; background: var(--accent-blue); border-color: var(--accent-blue);
+    box-shadow: 0 2px 8px rgba(74,144,226,0.25);
+}
+
+.slider-container { display: flex; align-items: center; gap: 10px; }
+.nova-slider { flex: 1; accent-color: var(--accent-blue); cursor: pointer; }
+.slider-value { font-size: 0.75rem; font-weight: 600; color: var(--text-primary); min-width: 30px; text-align: right; }
+
+.i2v-settings-panel .nova-textarea { font-size: 0.75rem; min-height: 70px; resize: none; margin-bottom: 10px; }
+
+#i2vGenerateBtn { margin-top: 15px; }
+
+/* ---- Responsive ---- */
+@media (max-width: 1024px) {
+    .i2v-workspace { grid-template-columns: 1fr; overflow-y: auto; }
+    .i2v-upload-panel, .i2v-preview-panel { border-right: none; border-bottom: 1px solid var(--border-color); }
+    .i2v-panel { padding: 14px; }
+    .i2v-upload-panel .upload-zone { min-height: unset; aspect-ratio: 16/9; }
+    .video-preview-container { min-height: unset; aspect-ratio: 16/9; }
+}
+
+@media (max-width: 768px) {
+    .i2v-header { padding: 8px 12px; }
+    .i2v-container { height: auto; min-height: unset; }
+    
+    .i2v-workspace {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas:
+            "upload preview"
+            "settings settings";
+        gap: 8px;
+        overflow: visible;
+        padding: 8px 10px 85px;
+    }
+    
+    .i2v-upload-panel {
+        grid-area: upload;
+        border: none;
+        padding: 0;
+    }
+    
+    .i2v-preview-panel {
+        grid-area: preview;
+        border: none;
+        padding: 0;
+    }
+    
+    .i2v-settings-panel {
+        grid-area: settings;
+        border: 1px solid var(--border-color);
+        padding: 10px;
+        border-radius: var(--border-radius-lg);
+        background: var(--bg-surface);
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .i2v-panel h3 {
+        font-size: 0.72rem;
+        margin-bottom: 4px;
+        font-weight: 700;
+    }
+    
+    .i2v-upload-panel .upload-zone,
+    .video-preview-container {
+        min-height: 180px;
+        height: 180px;
+        margin-bottom: 4px;
+        border-radius: var(--border-radius-md);
+        border: 1.5px dashed var(--border-color);
+        transition: transform 0.15s ease, border-color 0.15s ease;
+    }
+
+    .video-preview-container:active {
+        transform: scale(0.98);
+    }
+    
+    .upload-placeholder, .video-placeholder {
+        padding: 8px 4px;
+        gap: 3px;
+    }
+    
+    .upload-placeholder svg, .video-placeholder svg {
+        width: 24px;
+        height: 24px;
+    }
+    
+    .upload-placeholder p, .video-placeholder p {
+        font-size: 0.7rem;
+    }
+    
+    .upload-placeholder span {
+        font-size: 0.6rem;
+    }
+    
+    .change-image-btn {
+        margin-top: 4px;
+        padding: 5px 8px;
+        font-size: 0.7rem;
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .video-actions {
+        margin-top: 4px !important;
+        justify-content: center;
+    }
+    
+    .video-actions button {
+        padding: 6px !important;
+        font-size: 0.72rem !important;
+    }
+    
+    .i2v-settings-panel .settings-group {
+        padding: 4px 0;
+    }
+    
+    .i2v-settings-panel .settings-group h3 {
+        font-size: 0.68rem;
+        margin-bottom: 3px;
+    }
+    
+    .i2v-settings-panel .nova-textarea {
+        min-height: 44px;
+        height: 44px;
+        font-size: 16px !important;
+        margin-bottom: 3px;
+        padding: 6px 10px;
+        border-radius: var(--border-radius-sm);
+    }
+    
+    .slider-container {
+        gap: 6px;
+    }
+    
+    .slider-value {
+        font-size: 0.7rem;
+    }
+    
+    .fps-btn {
+        padding: 5px;
+        font-size: 0.7rem;
+    }
+    
+    #i2vGenerateBtn {
+        margin-top: 8px;
+        padding: 12px;
+        font-size: 0.9rem;
+        font-weight: 700;
+        box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+    }
+}

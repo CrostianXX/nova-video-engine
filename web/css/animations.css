@@ -1,0 +1,93 @@
+/* ============================================================
+   NOVA — Animations (Simplified)
+   ============================================================ */
+
+@keyframes fadeSlideUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes scaleIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes modalIn {
+    from { opacity: 0; transform: scale(0.95) translateY(8px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes dotsWave {
+    0%, 20% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+    80%, 100% { transform: translateY(0); }
+}
+
+@keyframes toastIn {
+    from { opacity: 0; transform: translateX(100%); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes toastOut {
+    from { opacity: 1; transform: translateX(0); }
+    to { opacity: 0; transform: translateX(100%); }
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+@keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+@keyframes glowPulse {
+    0% { box-shadow: 0 0 5px rgba(74, 144, 226, 0.4); }
+    50% { box-shadow: 0 0 20px rgba(74, 144, 226, 0.8); }
+    100% { box-shadow: 0 0 5px rgba(74, 144, 226, 0.4); }
+}
+
+/* --- Enterprise Logo Animation (Pulsar Knock) --- */
+@keyframes pulsarKnock {
+    0%, 100% { 
+        transform: scale(1) rotate(0deg); 
+        filter: drop-shadow(0 0 8px rgba(37, 99, 235, 0.5)); 
+    }
+    15% { 
+        transform: scale(1.15) rotate(6deg); 
+        filter: drop-shadow(0 0 25px rgba(96, 165, 250, 0.9)); 
+    }
+    30% { 
+        transform: scale(0.95) rotate(-4deg); 
+        filter: drop-shadow(0 0 5px rgba(37, 99, 235, 0.4)); 
+    }
+    45% { 
+        transform: scale(1.1) rotate(3deg); 
+        filter: drop-shadow(0 0 18px rgba(96, 165, 250, 0.8)); 
+    }
+    60% { 
+        transform: scale(1) rotate(0deg); 
+        filter: drop-shadow(0 0 8px rgba(37, 99, 235, 0.5)); 
+    }
+}
+
+@keyframes gradientShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* Skeleton loader */
+.skeleton {
+    background: linear-gradient(90deg, #eef2f9 25%, #f4f7fc 50%, #eef2f9 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.8s ease-in-out infinite;
+    border-radius: var(--border-radius-sm);
+}

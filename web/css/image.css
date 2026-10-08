@@ -1,0 +1,199 @@
+/* ============================================================
+   NOVA — I2I Image Page (Light Theme)
+   ============================================================ */
+
+.image-container {
+    height: calc(100vh - var(--header-height)); display: flex; flex-direction: column;
+}
+
+.image-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 28px; border-bottom: 1px solid var(--border-color);
+    background: var(--bg-secondary); backdrop-filter: blur(12px);
+}
+
+.image-workspace {
+    flex: 1; display: grid; grid-template-columns: 1fr 1.3fr 280px;
+    gap: 0; overflow: hidden;
+}
+
+.image-panel {
+    padding: 18px; overflow-y: auto; display: flex; flex-direction: column;
+}
+
+.image-panel h3 { font-size: 0.85rem; font-weight: 600; margin-bottom: 14px; }
+
+.image-upload-panel { border-right: 1px solid var(--border-color); }
+.image-upload-panel .upload-zone { flex: 1; min-height: 240px; }
+
+.change-image-btn { margin-top: 8px; align-self: flex-start; }
+
+.image-preview-panel { border-right: 1px solid var(--border-color); }
+.image-settings-panel { gap: 0; background: var(--bg-tertiary); }
+
+/* ---- Settings ---- */
+.settings-group {
+    padding: 12px 0; border-bottom: 1px solid var(--border-color);
+}
+
+.settings-group:last-of-type { border-bottom: none; }
+.settings-group h3 { font-size: 0.78rem; margin-bottom: 8px; font-weight: 600; color: var(--text-secondary); }
+
+.prompt-input-area .nova-textarea { font-size: 0.78rem; min-height: 100px; resize: none; margin-bottom: 10px; }
+
+#imageGenerateBtn { margin-top: 15px; }
+
+/* ---- Result ---- */
+.result-preview {
+    border-radius: var(--border-radius-lg); overflow: hidden; background: var(--bg-surface);
+    border: 1px solid var(--border-color); min-height: 260px; flex: 1;
+    display: flex; align-items: center; justify-content: center; margin-bottom: 14px;
+}
+
+.result-placeholder {
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    color: var(--text-tertiary); padding: 36px;
+}
+
+.result-placeholder svg { opacity: 0.25; color: var(--accent-blue); }
+.result-placeholder p { font-size: 0.78rem; }
+
+#finalResultImage { width: 100%; height: 100%; object-fit: contain; background: var(--bg-primary); }
+
+/* ---- Responsive ---- */
+@media (max-width: 1024px) {
+    .image-workspace { grid-template-columns: 1fr; overflow-y: auto; }
+    .image-upload-panel, .image-preview-panel { border-right: none; border-bottom: 1px solid var(--border-color); }
+    .image-panel { padding: 14px; }
+    .image-upload-panel .upload-zone { min-height: unset; aspect-ratio: 16/9; }
+    .result-preview { min-height: unset; aspect-ratio: 16/9; }
+}
+
+@media (max-width: 768px) {
+    .image-header { padding: 8px 12px; }
+    .image-container { height: auto; min-height: unset; }
+    
+    .image-workspace {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas:
+            "upload preview"
+            "settings settings";
+        gap: 8px;
+        overflow: visible;
+        padding: 8px 10px 85px;
+    }
+    
+    .image-upload-panel {
+        grid-area: upload;
+        border: none;
+        padding: 0;
+    }
+    
+    .image-preview-panel {
+        grid-area: preview;
+        border: none;
+        padding: 0;
+    }
+    
+    .image-settings-panel {
+        grid-area: settings;
+        border: 1px solid var(--border-color);
+        padding: 10px;
+        border-radius: var(--border-radius-lg);
+        background: var(--bg-surface);
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .image-panel h3 {
+        font-size: 0.72rem;
+        margin-bottom: 4px;
+        font-weight: 700;
+    }
+    
+    .image-upload-panel .upload-zone,
+    .result-preview {
+        min-height: 180px;
+        height: 180px;
+        margin-bottom: 4px;
+        border-radius: var(--border-radius-md);
+        border: 1.5px dashed var(--border-color);
+        transition: transform 0.15s ease, border-color 0.15s ease;
+    }
+
+    .result-preview:active {
+        transform: scale(0.98);
+    }
+    
+    .upload-placeholder, .result-placeholder {
+        padding: 8px 4px;
+        gap: 3px;
+    }
+    
+    .upload-placeholder svg, .result-placeholder svg {
+        width: 24px;
+        height: 24px;
+    }
+    
+    .upload-placeholder p, .result-placeholder p {
+        font-size: 0.7rem;
+    }
+    
+    .upload-placeholder span {
+        font-size: 0.6rem;
+    }
+    
+    .change-image-btn {
+        margin-top: 4px;
+        padding: 5px 8px;
+        font-size: 0.7rem;
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .settings-group {
+        padding: 4px 0;
+    }
+    
+    .settings-group h3 {
+        font-size: 0.68rem;
+        margin-bottom: 4px;
+    }
+    
+    .settings-group h4 {
+        display: none;
+    }
+    
+    .prompt-input-area .nova-textarea {
+        min-height: 48px;
+        height: 48px;
+        font-size: 16px !important;
+        margin-bottom: 4px;
+        padding: 6px 10px;
+        border-radius: var(--border-radius-sm);
+    }
+    
+    #loraSelect {
+        padding: 6px 24px 6px 10px;
+        font-size: 16px !important;
+        height: 36px;
+        border-radius: var(--border-radius-sm);
+    }
+    
+    #imageGenerateBtn {
+        margin-top: 8px;
+        padding: 12px;
+        font-size: 0.9rem;
+        font-weight: 700;
+        box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+    }
+    
+    .video-actions {
+        margin-top: 4px !important;
+    }
+    
+    .video-actions button {
+        padding: 6px !important;
+        font-size: 0.72rem !important;
+    }
+}

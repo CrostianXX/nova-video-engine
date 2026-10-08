@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>NOVA - The Future of Creative AI</title>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/animations.css">
+    <link rel="stylesheet" href="css/landing.css">
+    
+    <!-- Google Identity Services -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+    <!-- AI Brain Background -->
+    <div id="ai-background" class="ai-background">
+        <canvas id="brainCanvas"></canvas>
+    </div>
+
+    <!-- Navigation Bar -->
+    <header class="landing-header">
+        <div class="logo-container">
+            <div class="logo-icon">
+                <img src="assets/logo.png" alt="NOVA Logo">
+            </div>
+            <span class="logo-text">NOVA</span>
+        </div>
+        <nav class="landing-nav">
+            <a href="#" class="nav-link">Features</a>
+            <a href="#" class="nav-link">Models</a>
+            <a href="#" class="nav-link">Pricing</a>
+            <a href="/login" id="landingSignInBtn" class="btn btn-secondary">Sign In</a>
+            <a href="/login" id="landingGetStartedBtn" class="btn btn-primary">Get Started</a>
+        </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <main class="hero-section">
+        <div class="hero-content">
+            <div class="badge">NOVA AI STUDIO V2.0</div>
+            <h1 class="hero-title">Unlocking the Future of <span class="text-gradient">Creative AI</span></h1>
+            <p class="hero-subtitle">The most advanced enterprise-grade AI suite. Generate hyper-realistic images, animate videos, and brainstorm ideas with unprecedented intelligence and speed.</p>
+            
+            <div class="hero-cta" style="display: flex; flex-direction: column; align-items: center; gap: 16px;">
+                <div style="display: flex; gap: 14px; flex-wrap: wrap; justify-content: center;">
+                    <a href="/login" id="heroEnterStudioBtn" class="btn btn-primary btn-large">
+                        Enter the Studio
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                    </a>
+                    <a href="/login" class="btn btn-secondary btn-large">
+                        Sign In with Google
+                    </a>
+                </div>
+            </div>
+            
+            <div class="hero-stats">
+                <div class="stat-item">
+                    <span class="stat-value">1.2M+</span>
+                    <span class="stat-label">Creations Generated</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value">10x</span>
+                    <span class="stat-label">Faster Rendering</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value">99.9%</span>
+                    <span class="stat-label">Uptime Reliability</span>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Scripts -->
+    <script src="js/brain-animation.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            new BrainAnimation('brainCanvas');
+
+            // Cek jika pengguna sudah pernah login di browser ini
+            const storedUser = localStorage.getItem('novaUser');
+            if (storedUser) {
+                try {
+                    const user = JSON.parse(storedUser);
+                    if (!user || !user.email || user.email === 'creator@crostia.my.id' || user.email === 'barcaacc46@gmail.com' || user.name === 'Creator') {
+                        localStorage.removeItem('novaUser');
+                    } else {
+                        const firstName = user.name ? user.name.split(' ')[0] : 'Studio';
+                        
+                        const enterBtn = document.getElementById('heroEnterStudioBtn');
+                        if (enterBtn) {
+                            enterBtn.innerHTML = `Enter Studio (${firstName}) <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>`;
+                            enterBtn.href = '/dashboard';
+                        }
+                        
+                        const signInBtn = document.getElementById('landingSignInBtn');
+                        if (signInBtn) {
+                            signInBtn.textContent = 'Dashboard';
+                            signInBtn.href = '/dashboard';
+                        }
+                        
+                        const getStartedBtn = document.getElementById('landingGetStartedBtn');
+                        if (getStartedBtn) {
+                            getStartedBtn.textContent = 'Go to Studio';
+                            getStartedBtn.href = '/dashboard';
+                        }
+                    }
+                } catch (e) {
+                    localStorage.removeItem('novaUser');
+                }
+            }
+        });
+    </script>
+</body>
+</html>

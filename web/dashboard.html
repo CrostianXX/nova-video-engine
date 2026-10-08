@@ -1,0 +1,2262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script>
+        // Strict Auth Guard: User WAJIB login asli sebelum bisa mengakses Dashboard
+        (function() {
+            try {
+                // Bersihkan cache usang yang memakan kuota 5MB localStorage
+                for (let i = localStorage.length - 1; i >= 0; i--) {
+                    const k = localStorage.key(i);
+                    if (k && (k.startsWith('img_') || k.startsWith('data:') || k.includes('preview') || k.includes('cache_img'))) {
+                        localStorage.removeItem(k);
+                    }
+                }
+                const rawUser = localStorage.getItem('novaUser');
+                if (!rawUser) {
+                    window.location.replace('/login');
+                    return;
+                }
+                const user = JSON.parse(rawUser);
+                // Bersihkan dan tolak sisa-sisa akun dummy / guest 'Creator' lama
+                if (!user || !user.email || user.email === 'creator@crostia.my.id' || user.email === 'barcaacc46@gmail.com' || user.name === 'Creator') {
+                    localStorage.removeItem('novaUser');
+                    window.location.replace('/login');
+                    return;
+                }
+            } catch (e) {
+                localStorage.removeItem('novaUser');
+                window.location.replace('/login');
+            }
+        })();
+
+        // ==================== ADVANCED SECURITY SHIELD (100% SECURE) ====================
+        (function() {
+            // 1. Disable Right Click Context Menu
+            document.addEventListener('contextmenu', function(e) {
+                // Allow right click inside input / textarea if needed, else block
+                const tag = (e.target && e.target.tagName) ? e.target.tagName.toLowerCase() : '';
+                if (tag !== 'input' && tag !== 'textarea') {
+                    e.preventDefault();
+                    return false;
+                }
+            }, false);
+
+            // 2. Block Inspect DevTools Keyboard Shortcuts
+            document.addEventListener('keydown', function(e) {
+                // F12
+                if (e.keyCode === 123 || e.key === 'F12') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return false;
+                }
+                // Ctrl + Shift + I / J / C (DevTools & Inspect)
+                if (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i' || e.key === 'J' || e.key === 'j' || e.key === 'C' || e.key === 'c')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return false;
+                }
+                // Ctrl + U (View Source)
+                if (e.ctrlKey && (e.key === 'u' || e.key === 'U')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return false;
+                }
+                // Ctrl + S (Save Page)
+                if (e.ctrlKey && (e.key === 's' || e.key === 'S')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return false;
+                }
+            }, false);
+
+            // 3. Console & Debugger Obfuscation Shield
+            try {
+                const noop = function() {};
+                // Suppress internal leaks in production console
+                window.console.log = noop;
+                window.console.info = noop;
+                window.console.warn = noop;
+                window.console.debug = noop;
+            } catch(err) {}
+        })();
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>NOVA — AI Creative Studio</title>
+    <meta name="description" content="NOVA AI Creative Studio - Chat, Generate Images, Create Videos with AI">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/animations.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/sidebar.css">
+    <link rel="stylesheet" href="css/home.css">
+    <link rel="stylesheet" href="css/chat.css">
+    <link rel="stylesheet" href="css/image.css">
+    <link rel="stylesheet" href="css/i2v.css">
+    <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+    <!-- Background particles -->
+    <div class="bg-particles" id="bgParticles"></div>
+    
+    <!-- Background gradient orbs -->
+    <div class="bg-orbs">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
+    </div>
+
+    <!-- App Container -->
+    <div class="app" id="app">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-container" style="flex-direction: column; align-items: flex-start;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div class="logo-icon">
+                            <img src="assets/logo.png" alt="NOVA Logo">
+                        </div>
+                        <span class="logo-text">NOVA</span>
+                    </div>
+                    <div class="admin-badge">ADMIN</div>
+                </div>
+                <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+                </button>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item active" data-page="home" id="nav-home">
+                    <div class="nav-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                    </div>
+                    <span class="nav-label">Home</span>
+                </a>
+                <a href="#" class="nav-item" data-page="chat" id="nav-chat">
+                    <div class="nav-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+                    </div>
+                    <span class="nav-label">Chat</span>
+                </a>
+                <a href="#" class="nav-item" data-page="image" id="nav-image">
+                    <div class="nav-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                    </div>
+                    <span class="nav-label">Image</span>
+                </a>
+                <a href="#" class="nav-item" data-page="i2v" id="nav-i2v">
+                    <div class="nav-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+                    </div>
+                    <span class="nav-label">I2V</span>
+                </a>
+                
+                <!-- Admin Only Panel Link -->
+                <a href="#" class="nav-item admin-only" data-page="admin" id="nav-admin">
+                    <div class="nav-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    </div>
+                    <span class="nav-label">Admin Panel</span>
+                </a>
+                
+            </nav>
+
+            <div class="sidebar-section chat-history-section" style="display: none;" id="chatHistorySection">
+                <div class="sidebar-section-header">
+                    <span>Recent Chats</span>
+                    <button class="icon-btn new-chat-btn" id="newChatSidebarBtn" aria-label="New Chat">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+                    </button>
+                </div>
+                <div class="chat-history-list" id="chatHistoryList">
+                    <!-- History items will be injected here -->
+                </div>
+            </div>
+
+            <div class="sidebar-footer">
+                <!-- Quota / Tier Widget -->
+                <div class="quota-sidebar-container" id="quotaSidebarWidget"></div>
+                
+                <button class="settings-btn" id="settingsBtn">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+                    <span>Settings</span>
+                </button>
+                <button class="settings-btn" id="logoutBtn" style="color: #e74c5e;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                    <span>Logout</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Mobile sidebar overlay -->
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+        
+        <!-- Mobile bottom bar -->
+        <nav class="mobile-nav" id="mobileNav">
+            <a href="#" class="mobile-nav-item active" data-page="home">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                <span>Home</span>
+            </a>
+            <a href="#" class="mobile-nav-item" data-page="chat">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+                <span>Chat</span>
+            </a>
+            <a href="#" class="mobile-nav-item" data-page="image">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                <span>Image</span>
+            </a>
+            <a href="#" class="mobile-nav-item" data-page="i2v">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+                <span>I2V</span>
+            </a>
+            <a href="#" class="mobile-nav-item" data-page="settings-mobile">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+                <span>Settings</span>
+            </a>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content" id="mainContent">
+            <!-- Header -->
+            <header class="main-header" id="mainHeader">
+                <button class="mobile-menu-btn" id="mobileMenuBtn">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                </button>
+                <div class="search-bar" id="searchBar">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <input type="text" placeholder="Search anything..." id="searchInput">
+                </div>
+                <div class="header-actions">
+                    <!-- Anti-Lag / Lite Mode Button (For Low-End HP & Maximum FPS) -->
+                    <button class="header-btn" id="headerLiteModeBtn" title="Mode Anti-Lag: Matikan animasi kabel background & efek berat untuk performa super ringan di HP" style="display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 20px; font-size: 0.78rem; font-weight: 600; background: rgba(241, 245, 249, 0.85); border: 1px solid var(--border-color); color: var(--text-secondary); cursor: pointer; transition: all 0.2s;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                        <span id="liteModeBtnText">Anti-Lag</span>
+                    </button>
+                    <!-- Quick Hard Refresh Button for Mobile & PC -->
+                    <button class="header-btn" id="headerHardRefreshBtn" title="Segarkan Aplikasi & Bersihkan Cache" style="display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 20px; font-size: 0.78rem; font-weight: 600; background: rgba(241, 245, 249, 0.85); border: 1px solid var(--border-color); color: var(--text-secondary); cursor: pointer;">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                        <span class="refresh-label">Refresh Web</span>
+                    </button>
+                    <div class="notification-wrapper" style="position: relative;">
+                        <button class="header-btn notification-btn" id="notificationBtn" title="Pemberitahuan & Update Studio">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+                            <span class="notification-badge hidden" id="notificationBadge"></span>
+                        </button>
+                        <!-- Notification Dropdown Modal -->
+                        <div class="notification-dropdown hidden" id="notificationDropdown">
+                            <div class="notif-dropdown-header">
+                                <div class="notif-title-wrap">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+                                    <span>Pemberitahuan Studio</span>
+                                </div>
+                                <button class="notif-mark-read" id="btnMarkAllNotifsRead">Tandai Dibaca</button>
+                            </div>
+                            <div class="notif-list-container" id="notifListContainer">
+                                <div class="notif-empty-state">
+                                    <p>Memuat pemberitahuan...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="user-avatar" id="userAvatar">
+                        <img src="assets/cat_portrait.jpg" alt="User" id="headerAvatarImg">
+                        <span class="avatar-status"></span>
+                    </div>
+                    <span class="user-name" id="headerUserName">Daniel</span>
+                </div>
+            </header>
+
+            <!-- Page Container -->
+            <div class="page-container" id="pageContainer">
+                
+                <!-- ==================== HOME PAGE ==================== -->
+                <section class="page active" id="page-home" data-page="home">
+                    <div class="home-content">
+                        <div class="greeting-section">
+                            <div class="greeting-text">
+                                <h1 id="greetingText">Good afternoon, Daniel.</h1>
+                                <p class="greeting-sub">What do you want to create today?</p>
+                            </div>
+                            <div class="greeting-mascot">
+                            <img src="assets/logo.png" alt="Mascot" class="mascot-img">
+                        </div>
+                        </div>
+
+                        <div class="feature-cards">
+                            <div class="feature-card" data-page="chat" tabindex="0">
+                                <div class="card-icon card-icon-chat">
+                                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+                                </div>
+                                <h3>Chat</h3>
+                                <p>Talk with AI, get ideas, solve problems.</p>
+                                <div class="card-arrow">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
+                                </div>
+                            </div>
+                            <div class="feature-card" data-page="image" tabindex="0">
+                                <div class="card-icon card-icon-image">
+                                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                                </div>
+                                <h3>Image</h3>
+                                <p>Generate, edit images from text or edit existing ones.</p>
+                                <div class="card-arrow">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
+                                </div>
+                            </div>
+                            <div class="feature-card" data-page="i2v" tabindex="0">
+                                <div class="card-icon card-icon-video">
+                                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+                                </div>
+                                <h3>Video</h3>
+                                <p>Turn your ideas into motion with AI video.</p>
+                                <div class="card-arrow">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
+                                </div>
+                            </div>
+                            <div class="feature-card" data-page="image" tabindex="0">
+                                <div class="card-icon card-icon-i2i">
+                                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                                </div>
+                                <h3>I2I / I2V</h3>
+                                <p>Transform, animate, and bring your visuals to life.</p>
+                                <div class="card-arrow">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="recent-section">
+                            <div class="section-header">
+                                <h2>Recent Creations</h2>
+                                <button class="view-all-btn">View all →</button>
+                            </div>
+                            <div class="recent-grid">
+                                <div class="recent-item">
+                                    <div class="recent-thumb">
+                                        <img src="assets/anime_character.jpg" alt="Creation">
+                                        <div class="recent-overlay">
+                                            <span class="recent-type">Image</span>
+                                        </div>
+                                    </div>
+                                    <span class="recent-name">Anime Character</span>
+                                    <span class="recent-date">2 days ago</span>
+                                </div>
+                                <div class="recent-item">
+                                    <div class="recent-thumb">
+                                        <img src="assets/torii_gate.jpg" alt="Creation">
+                                        <div class="recent-overlay">
+                                            <span class="recent-type">Video</span>
+                                        </div>
+                                    </div>
+                                    <span class="recent-name">Anime Style</span>
+                                    <span class="recent-date">3 days ago</span>
+                                </div>
+                                <div class="recent-item">
+                                    <div class="recent-thumb">
+                                        <img src="assets/mountain_scene.jpg" alt="Creation">
+                                        <div class="recent-overlay">
+                                            <span class="recent-type">Image</span>
+                                        </div>
+                                    </div>
+                                    <span class="recent-name">Mountain Scene</span>
+                                    <span class="recent-date">5 days ago</span>
+                                </div>
+                                <div class="recent-item">
+                                    <div class="recent-thumb">
+                                        <img src="assets/cat_portrait.jpg" alt="Creation">
+                                        <div class="recent-overlay">
+                                            <span class="recent-type">I2I</span>
+                                        </div>
+                                    </div>
+                                    <span class="recent-name">Cat Portrait</span>
+                                    <span class="recent-date">1 week ago</span>
+                                </div>
+                                <div class="recent-item">
+                                    <div class="recent-thumb">
+                                        <img src="assets/city_night.jpg" alt="Creation">
+                                        <div class="recent-overlay">
+                                            <span class="recent-type">I2V</span>
+                                        </div>
+                                    </div>
+                                    <span class="recent-name">City Night</span>
+                                    <span class="recent-date">1 week ago</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ==================== CHAT PAGE ==================== -->
+                <section class="page" id="page-chat" data-page="chat">
+                    <div class="chat-container">
+                        <div class="chat-header">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <h2>Chat AI</h2>
+                                <button type="button" id="newChatHeaderBtn" class="chat-header-btn" title="Mulai Chat Baru">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                                    <span>Chat Baru</span>
+                                </button>
+                            </div>
+                            <div class="chat-model-select">
+                                <span class="model-label">Model</span>
+                                <select id="chatModelSelect" class="nova-select">
+                                    <option value="nova-1">NOVA-1</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="chat-messages" id="chatMessages">
+                            <div class="chat-welcome">
+                                <div class="chat-welcome-icon">
+                                    <svg width="48" height="48" viewBox="0 0 28 28" fill="none">
+                                        <path d="M14 2L16.5 11.5L26 14L16.5 16.5L14 26L11.5 16.5L2 14L11.5 11.5L14 2Z" fill="url(#chatLogoGrad)" />
+                                        <defs>
+                                            <linearGradient id="chatLogoGrad" x1="2" y1="2" x2="26" y2="26">
+                                                <stop stop-color="#60a5fa"/>
+                                                <stop offset="1" stop-color="#a78bfa"/>
+                                            </linearGradient>
+                                        </defs>
+                                    </svg>
+                                </div>
+                                <h2>What can I help you create?</h2>
+                                <div class="suggested-prompts">
+                                    <button class="prompt-chip" data-prompt="Create a fantasy scene with a magical forest">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+                                        Fantasy scene
+                                    </button>
+                                    <button class="prompt-chip" data-prompt="Help me write product photography descriptions">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                                        Product photography
+                                    </button>
+                                    <button class="prompt-chip" data-prompt="Turn this image into a cinematic video">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+                                        Turn image to video
+                                    </button>
+                                    <button class="prompt-chip" data-prompt="Change the style to watercolor painting">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/></svg>
+                                        Change art style
+                                    </button>
+                                    <button class="prompt-chip" data-prompt="Remove the background from my image">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+                                        Remove background
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="chat-input-area">
+                            <div class="chat-input-container">
+                                <div class="chat-attachments" id="chatAttachments">
+                                    <!-- attached images shown here -->
+                                </div>
+                                <div class="chat-input-row">
+                                    <button class="attach-btn" id="chatAttachBtn" title="Attach image">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                                    </button>
+                                    <textarea id="chatInput" placeholder="Ask me anything..." rows="1"></textarea>
+                                    <button class="send-btn" id="chatSendBtn" title="Send">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ==================== IMAGE (I2I) PAGE ==================== -->
+                <section class="page" id="page-image" data-page="image">
+                    <div class="image-container">
+                        <div class="image-header">
+                            <div class="page-breadcrumb">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                                <span>I2I</span>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+                                <span>Edit Image</span>
+                                <button class="admin-btn admin-only" id="pinterestSearchBtnI2I" title="Search Pinterest" style="margin-left: 12px; width: 28px; height: 28px; padding: 0; display: flex; align-items: center; justify-content: center; background: #E60023; border: none; border-radius: 50%; color: white; cursor: pointer; box-shadow: 0 2px 5px rgba(230,0,35,0.4);">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.08 3.16 9.42 7.63 11.16-.1-.95-.2-2.41.04-3.45.21-.92 1.38-5.84 1.38-5.84s-.35-.7-.35-1.74c0-1.63.95-2.85 2.13-2.85 1.01 0 1.5.76 1.5 1.67 0 1.01-.65 2.53-.98 3.93-.28 1.17.59 2.13 1.74 2.13 2.1 0 3.7-2.21 3.7-5.4 0-2.82-2.03-4.79-4.93-4.79-3.37 0-5.35 2.53-5.35 5.14 0 .97.37 2.01.84 2.58.09.1.1.2.07.31-.09.38-.3 1.25-.34 1.44-.05.21-.18.25-.4.15-1.5-.7-2.43-2.9-2.43-4.66 0-3.8 2.76-7.29 7.97-7.29 4.19 0 7.45 2.98 7.45 6.97 0 4.16-2.62 7.51-6.26 7.51-1.22 0-2.38-.64-2.77-1.39l-.75 2.87c-.27 1.04-1.02 2.34-1.52 3.14 1.17.36 2.42.56 3.7.56 6.63 0 12-5.37 12-12S18.63 0 12 0z"/></svg>
+                                </button>
+                            </div>
+                            <button class="close-page-btn" data-page="home">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                            </button>
+                        </div>
+                        
+                        <div class="image-workspace">
+                            <!-- Left: Upload Image -->
+                            <div class="image-panel image-upload-panel">
+                                <h3>Upload Image</h3>
+                                <div class="upload-zone" id="imageUploadZone">
+                                    <div class="upload-placeholder" id="imagePlaceholder">
+                                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                                        <p>Drop your image here</p>
+                                        <span>or click to browse</span>
+                                    </div>
+                                    <img id="imagePreview" class="upload-preview hidden" alt="Preview">
+                                    <input type="file" id="imageFileInput" accept="image/*" hidden>
+                                </div>
+                                <button class="nova-btn-secondary change-image-btn hidden" id="changeImageBtn" style="width: 100%;">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M2.13 15.57a10 10 0 1 0 4.43-11.89L2 6"/></svg>
+                                    Change Image
+                                </button>
+                            </div>
+
+                            <!-- Center: Image Preview -->
+                            <div class="image-panel image-preview-panel">
+                                <h3>Result Preview</h3>
+                                <div class="result-preview" id="imageResultPreview" style="position: relative;">
+                                    
+                                    <!-- Custom Loading Overlay -->
+                                    <div id="i2iLoadingOverlay" class="loading-overlay hidden" style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(22, 24, 29, 0.85); backdrop-filter: blur(8px); z-index: 10; border-radius: inherit;">
+                                        <div class="loading-spinner" style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                                            <div style="position: relative; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+                                                <div class="spinner-ring"></div>
+                                                <div class="spinner-ring"></div>
+                                                <div class="spinner-ring"></div>
+                                            </div>
+                                            <p class="loading-text" id="i2iLoadingText" style="color: white; margin-top: 10px; font-weight: 500; text-align: center;">Generating...</p>
+                                            <button type="button" id="i2iCancelBtn" style="margin-top: 14px; background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; color: #fca5a5; padding: 6px 16px; border-radius: 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s;">
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                                <span>Batal Generate</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="result-placeholder" id="imageResultPlaceholder">
+                                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                                        <p>Result will appear here</p>
+                                    </div>
+                                    <img id="finalResultImage" class="upload-preview hidden" alt="Result">
+                                </div>
+                                <div class="video-actions hidden" id="imageActions" style="margin-top: 10px; display: flex; gap: 8px;">
+                                    <button class="nova-btn-ghost" id="fullscreenImageBtn" title="Perbesar Layar Penuh" style="flex: 1; padding: 9px; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+                                        <span style="font-size: 0.78rem;">Zoom</span>
+                                    </button>
+                                    <button class="nova-btn-secondary" id="downloadImageBtn" style="flex: 1.2; padding: 9px; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                        <span style="font-size: 0.78rem;">Download</span>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Right: Settings -->
+                            <div class="image-panel image-settings-panel" style="background: var(--bg-tertiary);">
+                                <div class="settings-group">
+                                    <h3 style="color: var(--text-secondary); margin-bottom: 12px;">EDIT INSTRUCTION</h3>
+                                    <div class="tool-section">
+                                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                                            <h4 style="margin: 0;">Prompt</h4>
+                                            <span class="admin-prompt-pill admin-only">ADMIN PRESETS</span>
+                                        </div>
+                                        <!-- Admin Prompt Saver Bar -->
+                                        <div class="admin-prompt-bar admin-only" id="adminPromptBarI2I">
+                                            <select class="admin-prompt-select" id="adminPromptSelectI2I">
+                                                <option value="">📂 Pilih Prompt Preset...</option>
+                                            </select>
+                                            <button type="button" class="admin-prompt-btn save" id="adminSavePromptBtnI2I" title="Simpan prompt saat ini">
+                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                                                <span>Simpan</span>
+                                            </button>
+                                            <button type="button" class="admin-prompt-btn del" id="adminDelPromptBtnI2I" title="Hapus preset ini" style="display: none;">
+                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                            </button>
+                                        </div>
+                                        <div class="prompt-input-area">
+                                            <textarea class="nova-textarea" id="imagePrompt" placeholder="e.g., transform into anime, upscale, change lighting..." rows="4" style="width: 100%;"></textarea>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="settings-group" style="margin-top: 10px;">
+                                    <h3 style="color: var(--text-secondary); margin-bottom: 12px;">EDITING STYLE / LORA</h3>
+                                    <select class="nova-select full-width" id="loraSelect" style="width: 100%;">
+                                        <option value="KV-A" selected>KV-A</option>
+                                        <option value="Multiple-Angles">Multiple-Angles</option>
+                                        <option value="Photo-to-Anime">Photo-to-Anime</option>
+                                        <option value="Anime-V2">Anime-V2</option>
+                                        <option value="Light-Migration">Light-Migration</option>
+                                        <option value="Upscaler">Upscaler</option>
+                                        <option value="Style-Transfer">Style-Transfer</option>
+                                        <option value="Manga-Tone">Manga-Tone</option>
+                                        <option value="Anything2Real">Anything2Real</option>
+                                        <option value="Fal-Multiple-Angles">Fal-Multiple-Angles</option>
+                                        <option value="Polaroid-Photo">Polaroid-Photo</option>
+                                        <option value="Unblur-Anything">Unblur-Anything</option>
+                                        <option value="Midnight-Noir-Eyes-Spotlight">Midnight-Noir-Eyes-Spotlight</option>
+                                        <option value="Hyper-Realistic-Portrait">Hyper-Realistic-Portrait</option>
+                                        <option value="Ultra-Realistic-Portrait">Ultra-Realistic-Portrait</option>
+                                        <option value="Pixar-Inspired-3D">Pixar-Inspired-3D</option>
+                                        <option value="Noir-Comic-Book">Noir-Comic-Book</option>
+                                        <option value="Any-light">Any-light</option>
+                                        <option value="Studio-DeLight">Studio-DeLight</option>
+                                        <option value="Cinematic-FlatLog">Cinematic-FlatLog</option>
+                                    </select>
+                                </div>
+                                
+                                <button class="nova-btn-primary full-width" id="imageGenerateBtn" style="margin-top: 20px;">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                    Edit Image
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ==================== I2V (IMAGE TO VIDEO) PAGE ==================== -->
+                <section class="page" id="page-i2v" data-page="i2v">
+                    <div class="i2v-container">
+                        <div class="i2v-header">
+                            <div class="page-breadcrumb">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+                                <span>I2V</span>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+                                <span>Image to Video</span>
+                                <button class="admin-btn admin-only" id="pinterestSearchBtnI2V" title="Search Pinterest" style="margin-left: 12px; width: 28px; height: 28px; padding: 0; display: flex; align-items: center; justify-content: center; background: #E60023; border: none; border-radius: 50%; color: white; cursor: pointer; box-shadow: 0 2px 5px rgba(230,0,35,0.4);">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.08 3.16 9.42 7.63 11.16-.1-.95-.2-2.41.04-3.45.21-.92 1.38-5.84 1.38-5.84s-.35-.7-.35-1.74c0-1.63.95-2.85 2.13-2.85 1.01 0 1.5.76 1.5 1.67 0 1.01-.65 2.53-.98 3.93-.28 1.17.59 2.13 1.74 2.13 2.1 0 3.7-2.21 3.7-5.4 0-2.82-2.03-4.79-4.93-4.79-3.37 0-5.35 2.53-5.35 5.14 0 .97.37 2.01.84 2.58.09.1.1.2.07.31-.09.38-.3 1.25-.34 1.44-.05.21-.18.25-.4.15-1.5-.7-2.43-2.9-2.43-4.66 0-3.8 2.76-7.29 7.97-7.29 4.19 0 7.45 2.98 7.45 6.97 0 4.16-2.62 7.51-6.26 7.51-1.22 0-2.38-.64-2.77-1.39l-.75 2.87c-.27 1.04-1.02 2.34-1.52 3.14 1.17.36 2.42.56 3.7.56 6.63 0 12-5.37 12-12S18.63 0 12 0z"/></svg>
+                                </button>
+                            </div>
+                            <button class="close-page-btn" data-page="home">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                            </button>
+                        </div>
+                        
+                        <div class="i2v-workspace">
+                            <!-- Left: Upload Image -->
+                            <div class="i2v-panel i2v-upload-panel">
+                                <h3>Upload Image</h3>
+                                <div class="upload-zone i2v-upload" id="i2vUploadZone">
+                                    <div class="upload-placeholder" id="i2vPlaceholder">
+                                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                                        <p>Drop your image here</p>
+                                        <span>or click to browse</span>
+                                    </div>
+                                    <img id="i2vImagePreview" class="upload-preview hidden" alt="Preview">
+                                    <input type="file" id="i2vFileInput" accept="image/*" hidden>
+                                </div>
+                                <button class="nova-btn-ghost change-image-btn" id="i2vChangeBtn">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-6.219-8.56"/></svg>
+                                    Change Image
+                                </button>
+                            </div>
+
+                            <!-- Center: Video Preview -->
+                            <div class="i2v-panel i2v-preview-panel">
+                                <h3>Video Preview</h3>
+                                <div class="video-preview-container" id="videoPreviewContainer">
+                                    <!-- Custom Loading Overlay -->
+                                    <div id="i2vLoadingOverlay" class="loading-overlay hidden" style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(22, 24, 29, 0.85); backdrop-filter: blur(8px); z-index: 10; border-radius: inherit;">
+                                        <div class="loading-spinner" style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                                            <div style="position: relative; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+                                                <div class="spinner-ring"></div>
+                                                <div class="spinner-ring"></div>
+                                                <div class="spinner-ring"></div>
+                                            </div>
+                                            <p class="loading-text" id="i2vLoadingText" style="color: white; margin-top: 10px; font-weight: 500; text-align: center;">Generating...</p>
+                                            <button type="button" id="i2vCancelBtn" style="margin-top: 14px; background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; color: #fca5a5; padding: 6px 16px; border-radius: 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s;">
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                                <span>Batal Generate</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="video-placeholder" id="videoPlaceholder">
+                                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                                        <p>Video preview will appear here</p>
+                                    </div>
+                                    <video id="videoPreview" class="hidden" autoplay loop muted playsinline controls></video>
+                                    <div class="video-controls hidden" id="videoControls">
+                                        <div class="video-progress">
+                                            <div class="video-progress-bar" id="videoProgressBar"></div>
+                                        </div>
+                                        <div class="video-time">
+                                            <span id="videoCurrentTime">0:00</span> / <span id="videoDuration">0:00</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="video-actions" style="display: flex; gap: 8px; margin-top: 8px;">
+                                    <button class="nova-btn-ghost" id="fullscreenBtn" title="Perbesar Layar Penuh" style="flex: 1; padding: 9px; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+                                        <span style="font-size: 0.78rem;">Zoom</span>
+                                    </button>
+                                    <button class="nova-btn-secondary" id="downloadBtn" title="Download Video" style="flex: 1.2; padding: 9px; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                                        <span style="font-size: 0.78rem;">Download</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Right: Settings -->
+                            <div class="i2v-panel i2v-settings-panel">
+                                
+                                <div class="settings-group">
+                                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                                        <h3 style="margin: 0;">Prompt</h3>
+                                        <span class="admin-prompt-pill admin-only">ADMIN PRESETS</span>
+                                    </div>
+                                    <!-- Admin Prompt Saver Bar -->
+                                    <div class="admin-prompt-bar admin-only" id="adminPromptBarI2V">
+                                        <select class="admin-prompt-select" id="adminPromptSelectI2V">
+                                            <option value="">📂 Pilih Prompt Preset...</option>
+                                        </select>
+                                        <button type="button" class="admin-prompt-btn save" id="adminSavePromptBtnI2V" title="Simpan prompt saat ini">
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                                            <span>Simpan</span>
+                                        </button>
+                                        <button type="button" class="admin-prompt-btn del" id="adminDelPromptBtnI2V" title="Hapus preset ini" style="display: none;">
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                        </button>
+                                    </div>
+                                    <textarea class="nova-textarea" id="i2vPrompt" placeholder="Ketik prompt gerakan video..." rows="3"></textarea>
+                                </div>
+
+                                <div class="settings-group">
+                                    <h3>Duration (seconds)</h3>
+                                    <div class="slider-container">
+                                        <input type="range" class="nova-slider" id="i2vDuration" min="5" max="30" step="5" value="30">
+                                        <div class="slider-value"><span id="i2vDurationValue">30</span>s</div>
+                                    </div>
+                                </div>
+
+                                <div class="settings-group">
+                                    <h3>Video Fluidity (FPS)</h3>
+                                    <div class="fps-selector">
+                                        <div class="fps-options">
+                                            <button class="fps-btn active" data-fps="16">16</button>
+                                            <button class="fps-btn" data-fps="24">24</button>
+                                            <button class="fps-btn" data-fps="30">30</button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <button class="nova-btn-generate" id="i2vGenerateBtn">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                                    Generate Video
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ==================== ADMIN PANEL PAGE ==================== -->
+                <section class="page" id="page-admin" data-page="admin">
+                    <div class="admin-page-container">
+                        <div class="admin-page-header">
+                            <div class="page-breadcrumb">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                                <span>Admin Panel</span>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+                                <span>Token Health & System</span>
+                            </div>
+                            <button class="close-page-btn" data-page="home">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                            </button>
+                        </div>
+
+                        <div class="admin-page-body">
+                            <!-- Admin Top Section Switcher Tabs -->
+                            <div class="admin-section-nav">
+                                <button class="admin-nav-tab active" id="adminTabTokens" data-section="tokens">
+                                    <span class="tab-icon">
+                                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                                    </span>
+                                    <span class="tab-title">Token Health</span>
+                                    <span class="tab-badge" id="adminNavTokenCount">0</span>
+                                </button>
+                                <button class="admin-nav-tab" id="adminTabUsers" data-section="users">
+                                    <span class="tab-icon">
+                                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                                    </span>
+                                    <span class="tab-title">Pengguna Terdaftar</span>
+                                    <span class="tab-badge" id="adminNavUserCount">0</span>
+                                </button>
+                                <button class="admin-nav-tab" id="adminTabTranslate" data-section="translate">
+                                    <span class="tab-icon">
+                                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                                    </span>
+                                    <span class="tab-title">Translator (ID ⇄ EN)</span>
+                                    <span class="tab-badge" id="adminNavTranslateBadge" style="background: rgba(168, 85, 247, 0.15); color: #9333ea;">AI</span>
+                                </button>
+                                <button class="admin-nav-tab" id="adminTabLogs" data-section="logs">
+                                    <span class="tab-icon">
+                                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+                                    </span>
+                                    <span class="tab-title">CCTV & Riwayat</span>
+                                    <span class="tab-badge" id="adminNavLogCount" style="background: rgba(239, 68, 68, 0.15); color: #dc2626;">0</span>
+                                </button>
+                                <button class="admin-nav-tab" id="adminTabAnnouncements" data-section="announcements">
+                                    <span class="tab-icon">
+                                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+                                    </span>
+                                    <span class="tab-title">Broadcast Pengumuman</span>
+                                    <span class="tab-badge" id="adminNavAnnounceCount" style="background: rgba(139, 92, 246, 0.15); color: #8b5cf6;">0</span>
+                                </button>
+                            </div>
+
+                            <!-- SECTION 1: Token Health Inspector -->
+                            <div class="admin-card admin-section-content" id="adminSectionTokens">
+                                <div class="admin-card-header">
+                                    <div class="admin-card-title">
+                                        <div class="admin-card-icon" style="background: rgba(236, 72, 153, 0.12); color: #ec4899;">
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                                        </div>
+                                        <div>
+                                            <h3>Token Health Inspector</h3>
+                                            <p>Cek status dan kesehatan token AI HuggingFace secara real-time</p>
+                                        </div>
+                                    </div>
+                                    <div class="admin-card-actions">
+                                        <button class="admin-action-btn primary" id="btnCheckAllTokens">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+                                            <span id="btnCheckText">Cek Semua Token</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Summary Stats Cards -->
+                                <div class="token-stats-grid">
+                                    <div class="token-stat-card stat-total">
+                                        <span class="stat-label">Total Token</span>
+                                        <span class="stat-value" id="statTotalTokens">0</span>
+                                        <span class="stat-desc">Semua token terdaftar</span>
+                                    </div>
+                                    <div class="token-stat-card stat-active">
+                                        <span class="stat-label">🟢 Token Aktif</span>
+                                        <span class="stat-value" id="statActiveTokens">0</span>
+                                        <span class="stat-desc">Sehat & siap pakai</span>
+                                    </div>
+                                    <div class="token-stat-card stat-limited">
+                                        <span class="stat-label">🟡 Rate Limit</span>
+                                        <span class="stat-value" id="statLimitedTokens">0</span>
+                                        <span class="stat-desc">Batas request tercapai</span>
+                                    </div>
+                                    <div class="token-stat-card stat-dead">
+                                        <span class="stat-label">🔴 Token Mati / Invalid</span>
+                                        <span class="stat-value" id="statDeadTokens">0</span>
+                                        <span class="stat-desc">Expired / tidak valid</span>
+                                    </div>
+                                </div>
+
+                                <!-- Progress Bar (Active when checking) -->
+                                <div class="token-check-progress hidden" id="tokenCheckProgress">
+                                    <div class="progress-bar-bg">
+                                        <div class="progress-bar-fill" id="tokenProgressBar"></div>
+                                    </div>
+                                    <span class="progress-text" id="tokenProgressText">Memeriksa token (0/0)...</span>
+                                </div>
+
+                                <!-- Filter Tabs & Search -->
+                                <div class="token-filter-bar">
+                                    <div class="token-tabs">
+                                        <button class="token-tab-btn active" data-filter="all">Semua (<span id="countTabAll">0</span>)</button>
+                                        <button class="token-tab-btn" data-filter="active">🟢 Aktif (<span id="countTabActive">0</span>)</button>
+                                        <button class="token-tab-btn" data-filter="limited">🟡 Rate Limit (<span id="countTabLimited">0</span>)</button>
+                                        <button class="token-tab-btn" data-filter="dead">🔴 Mati (<span id="countTabDead">0</span>)</button>
+                                    </div>
+                                    <div class="token-search-box">
+                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                                        <input type="text" id="tokenSearchInput" placeholder="Cari token atau user...">
+                                    </div>
+                                </div>
+
+                                <!-- Token List Table / Container -->
+                                <div class="token-list-wrapper">
+                                    <div class="token-list-header">
+                                        <span class="col-index">#</span>
+                                        <span class="col-token">Token ID</span>
+                                        <span class="col-status">Status</span>
+                                        <span class="col-user">Akun HF</span>
+                                        <span class="col-action">Aksi</span>
+                                    </div>
+                                    <div class="token-list-items" id="tokenListItems">
+                                        <div class="token-empty-state">
+                                            <p>Klik tombol <strong>"Cek Semua Token"</strong> di atas untuk memeriksa kesehatan token.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- SECTION 2: Registered Users Section -->
+                            <div class="admin-card admin-section-content hidden" id="adminSectionUsers">
+                                <div class="admin-card-header">
+                                    <div class="admin-card-title">
+                                        <div class="admin-card-icon" style="background: rgba(59, 130, 246, 0.12); color: #3b82f6;">
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                                        </div>
+                                        <div>
+                                            <h3>Daftar Pengguna Terdaftar (Google & Email)</h3>
+                                            <p>Data profil seluruh pengguna yang pernah login ke Nova Studio</p>
+                                        </div>
+                                    </div>
+                                    <div class="admin-card-actions">
+                                        <button class="admin-action-btn" id="btnRefreshUsers" style="background: #f1f5f9; color: var(--text-primary);">
+                                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+                                            <span>Refresh Pengguna</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- User Stats Grid -->
+                                <div class="token-stats-grid" style="grid-template-columns: repeat(4, 1fr);">
+                                    <div class="token-stat-card stat-total">
+                                        <span class="stat-label">Total Akun</span>
+                                        <span class="stat-value" id="statTotalUsers">0</span>
+                                        <span class="stat-desc">Pengguna terdaftar</span>
+                                    </div>
+                                    <div class="token-stat-card stat-active">
+                                        <span class="stat-label">Google Login</span>
+                                        <span class="stat-value" id="statGoogleUsers">0</span>
+                                        <span class="stat-desc">Akun Google OAuth</span>
+                                    </div>
+                                    <div class="token-stat-card stat-limited">
+                                        <span class="stat-label">Email Login</span>
+                                        <span class="stat-value" id="statEmailUsers">0</span>
+                                        <span class="stat-desc">Akun Direct Email</span>
+                                    </div>
+                                    <div class="token-stat-card stat-dead" style="background: rgba(239, 68, 68, 0.06); border-color: rgba(239, 68, 68, 0.25);">
+                                        <span class="stat-label" style="color: #ef4444;">⛔ Akun Diblokir</span>
+                                        <span class="stat-value" id="statBannedUsers" style="color: #ef4444;">0</span>
+                                        <span class="stat-desc">Temp & Perm Ban</span>
+                                    </div>
+                                </div>
+
+                                <!-- Filter Tabs & Search bar for users -->
+                                <div class="token-filter-bar" style="margin-top: 12px;">
+                                    <div class="token-tabs" id="userFilterTabs">
+                                        <button class="token-tab-btn active" data-user-filter="all">Semua (<span id="countUserTabAll">0</span>)</button>
+                                        <button class="token-tab-btn" data-user-filter="active">🟢 Aktif (<span id="countUserTabActive">0</span>)</button>
+                                        <button class="token-tab-btn" data-user-filter="temp">🟡 Temp Ban (<span id="countUserTabTemp">0</span>)</button>
+                                        <button class="token-tab-btn" data-user-filter="perm">🔴 Perm Ban (<span id="countUserTabPerm">0</span>)</button>
+                                    </div>
+                                    <div class="token-search-box" style="max-width: 300px;">
+                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                                        <input type="text" id="userSearchInput" placeholder="Cari nama, email, status...">
+                                    </div>
+                                </div>
+
+                                <!-- Users Table -->
+                                <div class="token-list-wrapper user-list-wrapper">
+                                    <div class="token-list-header user-list-header">
+                                        <span class="col-user-idx">#</span>
+                                        <span class="col-user-profile">Pengguna</span>
+                                        <span class="col-user-email">Email</span>
+                                        <span class="col-user-provider">Provider</span>
+                                        <span class="col-user-status">Status</span>
+                                        <span class="col-user-date">Terakhir Aktif</span>
+                                        <span class="col-user-act">Aksi</span>
+                                    </div>
+                                    <div class="token-list-items" id="userListItems">
+                                        <div class="token-empty-state">
+                                            <p>Memuat data pengguna terdaftar...</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- SECTION 3: Smart Prompt Translator (ID <-> EN) -->
+                            <div class="admin-card admin-section-content hidden" id="adminSectionTranslate">
+                                <div class="admin-card-header">
+                                    <div class="admin-card-title">
+                                        <div class="admin-card-icon" style="background: rgba(168, 85, 247, 0.12); color: #9333ea;">
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                                        </div>
+                                        <div>
+                                            <h3>Smart Prompt Translator (ID ⇄ EN)</h3>
+                                            <p>Terjemahkan deskripsi prompt Bahasa Indonesia ke Bahasa Inggris atau sebaliknya secara instan</p>
+                                        </div>
+                                    </div>
+                                    <div class="admin-card-actions">
+                                        <button class="admin-action-btn primary" id="btnAdminTranslateNow">
+                                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+                                            <span id="btnAdminTranslateText">Terjemahkan</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Language Direction Switcher Bar -->
+                                <div class="translate-mode-bar">
+                                    <div class="translate-lang-indicator source" id="transSourceLangBadge">
+                                        <span class="flag-icon" id="transSourceFlag">🇮🇩</span>
+                                        <span class="lang-name" id="transSourceLangName">Indonesia (ID)</span>
+                                    </div>
+                                    <button type="button" class="translate-swap-btn" id="btnSwapTranslateLang" title="Tukar Arah Bahasa (ID ⇄ EN)">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M7 16V4m0 0L3 8m4-4l4 4m6 4v12m0 0l4-4m-4 4l-4-4"/></svg>
+                                    </button>
+                                    <div class="translate-lang-indicator target" id="transTargetLangBadge">
+                                        <span class="flag-icon" id="transTargetFlag">🇬🇧</span>
+                                        <span class="lang-name" id="transTargetLangName">English (EN)</span>
+                                    </div>
+                                </div>
+
+                                <!-- Quick Preset Prompts -->
+                                <div class="translate-presets-row">
+                                    <span class="preset-label">Preset Prompt Cepat:</span>
+                                    <div class="translate-preset-chips">
+                                        <button type="button" class="trans-chip" data-text="Seorang wanita cantik mengenakan gaun sutra elegan di taman bunga sakura saat senja, sinematik 8k, pencahayaan lembut ultra HD">🌸 Potret Elegan</button>
+                                        <button type="button" class="trans-chip" data-text="Pemandangan kota cyberpunk masa depan dengan gedung pencakar langit dan lampu neon biru ungu di malam hujan, fotorealistik">🏙️ Cyberpunk City</button>
+                                        <button type="button" class="trans-chip" data-text="Karakter anime lucu dengan rambut perak bercahaya dan mata biru kristal, gaya ilustrasi Makoto Shinkai masterpiece">✨ Anime Masterpiece</button>
+                                        <button type="button" class="trans-chip" data-text="Mobil sport futuristik melaju kencang di jalan tol pesisir pantai saat matahari terbit, motion blur dinamis, 4k 60fps">🏎️ Hypercar Action</button>
+                                        <button type="button" class="trans-chip" data-text="Close-up wajah harimau putih megah dengan tatapan mata tajam di salju, detail bulu hiper-realistis, pencahayaan studio drama">🐯 Majestic Tiger</button>
+                                    </div>
+                                </div>
+
+                                <!-- Dual Translation Box -->
+                                <div class="translate-grid">
+                                    <!-- Source Panel -->
+                                    <div class="translate-panel source-panel">
+                                        <div class="translate-panel-header">
+                                            <span class="panel-tag" id="transSourceTag">Input Teks Asli (ID)</span>
+                                            <button type="button" class="btn-clear-trans" id="btnClearTransSource" title="Hapus teks">
+                                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                                Bersihkan
+                                            </button>
+                                        </div>
+                                        <textarea id="transSourceText" class="translate-textarea" placeholder="Ketik atau tempel prompt / kalimat di sini..." rows="7"></textarea>
+                                        <div class="translate-panel-footer">
+                                            <span class="char-count" id="transSourceCharCount">0 karakter</span>
+                                            <span class="trans-auto-hint">⚡ Terjemahan instan real-time</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Target Panel -->
+                                    <div class="translate-panel target-panel">
+                                        <div class="translate-panel-header">
+                                            <span class="panel-tag" id="transTargetTag">Hasil Terjemahan (EN)</span>
+                                            <div class="panel-quick-actions">
+                                                <button type="button" class="btn-action-trans" id="btnCopyTranslated" title="Salin hasil ke clipboard">
+                                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                                    <span id="btnCopyTranslatedText">Salin Teks</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="translate-output-wrapper">
+                                            <textarea id="transResultText" class="translate-textarea result" placeholder="Hasil terjemahan akan otomatis muncul di sini..." rows="7" readonly></textarea>
+                                            <div class="translate-loading-overlay hidden" id="transLoadingSpinner">
+                                                <div class="trans-spinner"></div>
+                                                <span>Menerjemahkan...</span>
+                                            </div>
+                                        </div>
+                                        <div class="translate-panel-footer actions-footer">
+                                            <span class="char-count" id="transTargetCharCount">0 karakter</span>
+                                            <div class="prompt-injection-buttons">
+                                                <button type="button" class="btn-send-to-prompt" id="btnSendToI2I" title="Gunakan langsung untuk Image Generator">
+                                                    🎨 Pakai di Image
+                                                </button>
+                                                <button type="button" class="btn-send-to-prompt" id="btnSendToI2V" title="Gunakan langsung untuk Video Generator">
+                                                    🎬 Pakai di Video
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- SECTION 4: CCTV / Live User Activity Logs -->
+                            <div class="admin-card admin-section-content hidden" id="adminSectionLogs">
+                                <div class="admin-card-header">
+                                    <div class="admin-card-title">
+                                        <div class="admin-card-icon" style="background: rgba(239, 68, 68, 0.12); color: #dc2626;">
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+                                        </div>
+                                        <div>
+                                            <h3>Live CCTV & Riwayat Aktivitas Pengguna</h3>
+                                            <p>Pantau semua aktivitas pengguna non-admin secara real-time (Chat, Image Gen, Video Gen, Prompt, & Jam)</p>
+                                        </div>
+                                    </div>
+                                    <div class="admin-card-actions">
+                                        <button class="admin-action-btn" id="btnRefreshLogs" style="background: #f1f5f9; color: var(--text-primary);">
+                                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+                                            <span>Refresh CCTV</span>
+                                        </button>
+                                        <button class="admin-action-btn" id="btnClearLogs" style="background: rgba(239, 68, 68, 0.08); color: #dc2626; border: 1px solid rgba(239, 68, 68, 0.2);">
+                                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                            <span>Hapus Riwayat</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Activity Stats Grid -->
+                                <div class="token-stats-grid" style="grid-template-columns: repeat(4, 1fr);">
+                                    <div class="token-stat-card stat-total">
+                                        <span class="stat-label">Total Aktivitas</span>
+                                        <span class="stat-value" id="statTotalLogs">0</span>
+                                        <span class="stat-desc">Log tersimpan</span>
+                                    </div>
+                                    <div class="token-stat-card stat-active">
+                                        <span class="stat-label">💬 Chat Prompt</span>
+                                        <span class="stat-value" id="statChatLogs">0</span>
+                                        <span class="stat-desc">Pertanyaan user</span>
+                                    </div>
+                                    <div class="token-stat-card stat-limited">
+                                        <span class="stat-label">🎨 Image Gen</span>
+                                        <span class="stat-value" id="statImageLogs">0</span>
+                                        <span class="stat-desc">Generate gambar</span>
+                                    </div>
+                                    <div class="token-stat-card" style="background: rgba(168, 85, 247, 0.06); border-color: rgba(168, 85, 247, 0.25);">
+                                        <span class="stat-label" style="color: #9333ea;">🎬 Video Gen</span>
+                                        <span class="stat-value" id="statVideoLogs" style="color: #9333ea;">0</span>
+                                        <span class="stat-desc">Generate video</span>
+                                    </div>
+                                </div>
+
+                                <!-- Filter Bar & Search -->
+                                <div class="token-filter-bar" style="margin-top: 12px;">
+                                    <div class="token-tabs" id="logFilterTabs">
+                                        <button class="token-tab-btn active" data-log-filter="all">Semua (<span id="countLogTabAll">0</span>)</button>
+                                        <button class="token-tab-btn" data-log-filter="chat">💬 Chat (<span id="countLogTabChat">0</span>)</button>
+                                        <button class="token-tab-btn" data-log-filter="image_gen">🎨 Image (<span id="countLogTabImage">0</span>)</button>
+                                        <button class="token-tab-btn" data-log-filter="video_gen">🎬 Video (<span id="countLogTabVideo">0</span>)</button>
+                                        <button class="token-tab-btn" data-log-filter="login">🔑 Login (<span id="countLogTabLogin">0</span>)</button>
+                                    </div>
+                                    <div class="token-search-box" style="max-width: 320px;">
+                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                                        <input type="text" id="logSearchInput" placeholder="Cari nama, email, prompt...">
+                                    </div>
+                                </div>
+
+                                <!-- CCTV Activity Stream Feed -->
+                                <div class="cctv-feed-container" id="cctvFeedList">
+                                    <div class="token-empty-state">
+                                        <p>Memuat riwayat CCTV aktivitas pengguna...</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- SECTION 5: Broadcast Pengumuman & Update Sistem -->
+                            <div class="admin-card admin-section-content hidden" id="adminSectionAnnouncements">
+                                <div class="admin-card-header">
+                                    <div class="admin-card-title">
+                                        <div class="admin-card-icon" style="background: rgba(139, 92, 246, 0.12); color: #8b5cf6;">
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+                                        </div>
+                                        <div>
+                                            <h3>Broadcast Pengumuman ke Semua User</h3>
+                                            <p>Pesan yang dikirim di sini akan langsung muncul dengan titik merah di lonceng notifikasi semua pengguna</p>
+                                        </div>
+                                    </div>
+                                    <div class="admin-card-actions">
+                                        <button class="admin-action-btn" id="btnRefreshAnnounce" style="background: #f1f5f9; color: var(--text-primary);">
+                                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+                                            <span>Refresh</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Super Simple Form Box -->
+                                <div class="announce-form-box" style="margin-top: 14px; background: var(--bg-tertiary); padding: 18px; border-radius: 14px; border: 1px solid var(--border-color);">
+                                    <div style="margin-bottom: 12px;">
+                                        <label style="font-size: 0.82rem; font-weight: 700; color: var(--text-primary); display: block; margin-bottom: 6px;">
+                                            Tulis Pesan Pengumuman / Info Update:
+                                        </label>
+                                        <textarea id="announceMessageInput" class="admin-input" rows="3" placeholder="Contoh: Halo semua! Nanti malam jam 23:00 WIB server akan update fitur baru ya. Mohon simpan pekerjaanmu." style="width: 100%; box-sizing: border-box; resize: vertical; font-family: inherit; font-size: 0.9rem; padding: 12px; border-radius: 10px;"></textarea>
+                                    </div>
+                                    <div style="display: flex; justify-content: flex-end;">
+                                        <button type="button" id="btnPublishAnnounce" class="admin-action-btn" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9); color: white; border: none; padding: 10px 22px; font-weight: 700; font-size: 0.88rem; border-radius: 10px; cursor: pointer; box-shadow: 0 4px 14px rgba(139, 92, 246, 0.35); display: flex; align-items: center; gap: 8px;">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                                            <span>Kirim Pengumuman</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- History Header -->
+                                <div style="display: flex; align-items: center; justify-content: space-between; margin: 24px 0 12px 0;">
+                                    <h4 style="margin: 0; font-size: 0.95rem; font-weight: 700; color: var(--text-primary);">Pengumuman Aktif</h4>
+                                    <span id="announceHistoryCount" style="font-size: 0.78rem; color: var(--text-secondary);">0 pengumuman</span>
+                                </div>
+
+                                <!-- Announcement History List -->
+                                <div class="announce-history-list" id="announceHistoryList" style="display: flex; flex-direction: column; gap: 10px;">
+                                    <div class="token-empty-state">
+                                        <p>Belum ada pengumuman yang dikirim.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal-overlay hidden" id="settingsModal">
+        <div class="modal-container settings-modal">
+            <div class="modal-header">
+                <h2>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                    Account
+                </h2>
+                <button class="modal-close" id="settingsClose">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="settings-section account-info-section">
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 15px; padding: 10px 0 20px 0;">
+                        <div style="position: relative; display: inline-block; cursor: pointer;" id="profileAvatarContainer">
+                            <img src="assets/cat_portrait.jpg" id="settingsAvatar" alt="User" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 3px solid var(--accent-blue-light); padding: 3px; transition: opacity 0.2s;">
+                            <div class="avatar-hover-overlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 50%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s; pointer-events: none;">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                            </div>
+                            <input type="file" id="profileImageInput" accept="image/*" style="display: none;">
+                        </div>
+                        <div style="text-align: center;">
+                            <h3 id="settingsName" style="margin: 0; font-size: 1.25rem; font-weight: 600; color: var(--text-primary);">Daniel</h3>
+                            <p id="settingsEmail" style="margin: 5px 0 0 0; font-size: 0.9rem; color: var(--text-tertiary);">User Account</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Quota & Limit Details in Account Modal -->
+                    <div id="accountQuotaContainer"></div>
+                    
+                    <div class="divider" style="height: 1px; background: var(--border-color); margin: 15px 0;"></div>
+                    
+                    <button id="settingsLogoutBtn" class="settings-btn" style="color: #e74c5e; justify-content: center; background: rgba(231, 76, 94, 0.05); border: 1px solid rgba(231, 76, 94, 0.2); width: 100%;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                        <span>Sign Out</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Media Preview Lightbox Modal (Fullscreen Zoom for Images & Videos) -->
+    <div class="media-lightbox-overlay hidden" id="mediaLightboxModal">
+        <div class="media-lightbox-container">
+            <button class="media-lightbox-close" id="mediaLightboxClose" title="Tutup Preview">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+            <div class="media-lightbox-content">
+                <img id="mediaLightboxImage" class="media-lightbox-element hidden" src="" alt="Zoom Preview">
+                <video id="mediaLightboxVideo" class="media-lightbox-element hidden" controls playsinline></video>
+            </div>
+            <div class="media-lightbox-actions">
+                <button class="media-lightbox-download" id="mediaLightboxDownload">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    <span>Download</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay hidden" id="loadingOverlay">
+        <div class="loading-spinner">
+            <div class="spinner-ring"></div>
+            <div class="spinner-ring"></div>
+            <div class="spinner-ring"></div>
+            <p class="loading-text" id="loadingText">Generating...</p>
+        </div>
+    </div>
+
+    <!-- Admin Login Modal -->
+    <div class="admin-modal-overlay" id="adminLoginModal">
+        <div class="admin-login-box">
+            <div class="admin-login-header">
+                <h2>Admin Authentication</h2>
+                <p>System access requires verification</p>
+            </div>
+            
+            <div class="admin-input-group">
+                <label for="adminUser">Username</label>
+                <input type="text" id="adminUser" class="admin-input" placeholder="Enter username">
+            </div>
+            
+            <div class="admin-input-group">
+                <label for="adminPin">Access PIN</label>
+                <input type="password" id="adminPin" class="admin-input" placeholder="Enter 6-digit PIN">
+            </div>
+
+            <!-- Slider Captcha -->
+            <div class="slider-captcha-container" id="captchaContainer">
+                <div class="slider-captcha-track" id="captchaTrack"></div>
+                <div class="slider-captcha-text" id="captchaText">Slide to Verify</div>
+                <div class="slider-captcha-thumb" id="captchaThumb">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="captchaIcon"><path d="M9 18l6-6-6-6"/></svg>
+                </div>
+            </div>
+
+            <div class="admin-actions">
+                <button class="admin-btn admin-btn-cancel" id="adminCancelBtn">Cancel</button>
+                <button class="admin-btn admin-btn-submit" id="adminSubmitBtn" disabled>Authenticate</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Ban User Modal -->
+    <div class="admin-modal-overlay" id="adminBanModal">
+        <div class="admin-login-box admin-ban-box" style="max-width: 480px;">
+            <div class="admin-login-header">
+                <div style="width: 48px; height: 48px; border-radius: 50%; background: rgba(239, 68, 68, 0.12); color: #ef4444; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
+                </div>
+                <h2>Kelola Ban Pengguna</h2>
+                <p id="banTargetUserEmail" style="font-weight: 600; color: var(--text-primary); word-break: break-all;">user@email.com</p>
+            </div>
+
+            <!-- Ban Type Switcher Pills -->
+            <div class="ban-type-switcher">
+                <button type="button" class="ban-type-btn active" id="btnBanTypeTemp" data-type="temp">
+                    <span>⏱️ Ban Sementara (Temp)</span>
+                </button>
+                <button type="button" class="ban-type-btn" id="btnBanTypePerm" data-type="perm">
+                    <span>⛔ Ban Permanen (Perm)</span>
+                </button>
+            </div>
+
+            <!-- Temp Ban Duration Options -->
+            <div class="ban-duration-section" id="banDurationSection">
+                <label class="ban-field-label">Pilih Durasi Ban:</label>
+                <div class="ban-duration-chips">
+                    <button type="button" class="duration-chip" data-hours="1">1 Jam</button>
+                    <button type="button" class="duration-chip" data-hours="6">6 Jam</button>
+                    <button type="button" class="duration-chip" data-hours="12">12 Jam</button>
+                    <button type="button" class="duration-chip active" data-hours="24">1 Hari</button>
+                    <button type="button" class="duration-chip" data-hours="72">3 Hari</button>
+                    <button type="button" class="duration-chip" data-hours="168">7 Hari</button>
+                    <button type="button" class="duration-chip" data-hours="720">30 Hari</button>
+                </div>
+                <div class="ban-custom-duration" style="margin-top: 8px;">
+                    <input type="number" id="banCustomHoursInput" placeholder="Atau ketik durasi kustom (jam)..." min="1" max="8760" class="admin-input">
+                </div>
+            </div>
+
+            <!-- Ban Reason -->
+            <div class="ban-reason-section" style="margin-top: 14px;">
+                <label class="ban-field-label">Alasan Pemblokiran:</label>
+                <div class="ban-reason-presets">
+                    <button type="button" class="reason-chip" data-reason="Penyalahgunaan API / Spam Generate">Spam / Botting</button>
+                    <button type="button" class="reason-chip" data-reason="Perilaku melanggar aturan studio">Melanggar Aturan</button>
+                    <button type="button" class="reason-chip" data-reason="Pelanggaran Hak Cipta / TOS">Pelanggaran TOS</button>
+                </div>
+                <textarea id="banReasonInput" class="admin-input" placeholder="Tulis alasan pemblokiran pengguna ini..." rows="3" style="resize: none; width: 100%; box-sizing: border-box;"></textarea>
+            </div>
+
+            <div class="admin-actions" style="margin-top: 18px;">
+                <button type="button" class="admin-btn admin-btn-cancel" id="btnCancelBanModal">Batal</button>
+                <button type="button" class="admin-btn" id="btnConfirmExecuteBan" style="background: linear-gradient(135deg, #ef4444, #dc2626); color: white; border: none; font-weight: 700; cursor: pointer;">Terapkan Ban</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Banned User Fullscreen Block Overlay Screen -->
+    <div class="user-banned-overlay hidden" id="userBannedOverlay">
+        <div class="user-banned-card">
+            <div class="banned-icon-circle">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
+            </div>
+            <h2>Akses Akun Ditangguhkan</h2>
+            <p class="banned-subtitle">Akun Anda sedang diblokir dari Nova Creative Studio.</p>
+
+            <div class="banned-details-box">
+                <div class="banned-detail-row">
+                    <span class="detail-label">Status Blokir</span>
+                    <span class="detail-val" id="bannedStatusBadge">Ban Sementara</span>
+                </div>
+                <div class="banned-detail-row" id="bannedExpiresRow">
+                    <span class="detail-label">Berakhir Pada</span>
+                    <span class="detail-val" id="bannedExpiresText">-</span>
+                </div>
+                <div class="banned-detail-row">
+                    <span class="detail-label">Alasan</span>
+                    <span class="detail-val" id="bannedReasonText">Pelanggaran kebijakan</span>
+                </div>
+            </div>
+
+            <p class="banned-help-text">Jika Anda merasa ini adalah kekeliruan, silakan hubungi administrator.</p>
+
+            <button type="button" class="btn-banned-logout" id="btnBannedLogout">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                <span>Keluar dari Akun</span>
+            </button>
+        </div>
+    </div>
+    
+    <!-- Pinterest Search Modal Styles -->
+    <style>
+        #pinterestGrid {
+            column-count: 4;
+            column-gap: 16px;
+            padding-right: 8px;
+        }
+        @media (max-width: 992px) {
+            #pinterestGrid {
+                column-count: 3;
+            }
+        }
+        @media (max-width: 600px) {
+            #pinterestGrid {
+                column-count: 2;
+                column-gap: 10px;
+            }
+        }
+        .pinterest-item {
+            break-inside: avoid;
+            margin-bottom: 16px;
+            border-radius: 16px;
+            overflow: hidden;
+            position: relative;
+            cursor: pointer;
+            background-color: #f1f5f9;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+            transition: transform 0.25s ease, box-shadow 0.25s ease;
+        }
+        .pinterest-item:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 28px rgba(0,0,0,0.16);
+        }
+        .pinterest-item img {
+            width: 100%;
+            height: auto;
+            min-height: 120px;
+            object-fit: cover;
+            display: block;
+        }
+        .pinterest-overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.2) 50%, transparent 100%);
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 12px;
+            pointer-events: none;
+        }
+        .pinterest-item:hover .pinterest-overlay {
+            opacity: 1;
+        }
+        .pinterest-action-btn {
+            pointer-events: auto;
+            border: none;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-size: 11px;
+            font-weight: 600;
+            backdrop-filter: blur(8px);
+            cursor: pointer;
+            transition: transform 0.15s ease, background-color 0.15s ease;
+        }
+        .pinterest-last-visited-badge {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.72);
+            color: #ffffff;
+            padding: 7px 16px;
+            border-radius: 24px;
+            font-size: 13px;
+            font-weight: 600;
+            backdrop-filter: blur(6px);
+            pointer-events: none;
+            z-index: 5;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            letter-spacing: 0.2px;
+        }
+        .pinterest-tags-bar {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 6px;
+            margin-bottom: 14px;
+            scrollbar-width: none;
+        }
+        .pinterest-tags-bar::-webkit-scrollbar {
+            display: none;
+        }
+        .pinterest-tag-pill {
+            flex: 0 0 auto;
+            background: rgba(0, 0, 0, 0.05);
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            color: var(--text-primary);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .pinterest-tag-pill:hover, .pinterest-tag-pill.active {
+            background: #e60023;
+            color: white;
+            border-color: #e60023;
+        }
+        .pinterest-detail-container {
+            display: flex;
+            gap: 20px;
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+        @media (max-width: 950px) {
+            .pinterest-detail-container {
+                flex-direction: column;
+            }
+        }
+        .pinterest-back-circle-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #f1f5f9;
+            border: 1px solid rgba(0,0,0,0.08);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #1e293b;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+        .pinterest-back-circle-btn:hover {
+            background: #e2e8f0;
+            transform: scale(1.05);
+        }
+        .pinterest-url-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 8px 16px;
+            border-radius: 24px;
+            font-size: 12px;
+            color: #475569;
+            max-width: 450px;
+            overflow: hidden;
+        }
+        .pinterest-detail-card {
+            flex: 1.15;
+            min-width: 0;
+            background: #ffffff;
+            border-radius: 32px;
+            border: 1px solid rgba(0,0,0,0.08);
+            box-shadow: 0 12px 36px rgba(0,0,0,0.08);
+            display: flex;
+            flex-direction: row;
+            overflow: hidden;
+            max-height: 75vh;
+        }
+        @media (max-width: 900px) {
+            .pinterest-detail-card {
+                flex-direction: column;
+                max-height: none;
+            }
+        }
+        .pinterest-card-img-wrap {
+            flex: 1;
+            background: #f8fafc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+            min-width: 250px;
+        }
+        .pinterest-card-img-wrap img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            max-height: 75vh;
+            display: block;
+        }
+        .pinterest-card-info-wrap {
+            flex: 1;
+            min-width: 280px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            overflow-y: auto;
+        }
+        .pinterest-action-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        .pin-icon-btn {
+            height: 36px;
+            border-radius: 18px;
+            border: none;
+            background: #f1f5f9;
+            color: #334155;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.15s;
+            gap: 5px;
+            padding: 0 10px;
+        }
+        .pin-icon-btn:hover {
+            background: #e2e8f0;
+        }
+        .pinterest-save-btn {
+            background: #e60023;
+            color: white;
+            border: none;
+            padding: 9px 20px;
+            border-radius: 24px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.15s, transform 0.15s;
+        }
+        .pinterest-save-btn:hover {
+            background: #ad081b;
+            transform: scale(1.02);
+        }
+        .pinterest-author-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .pinterest-author-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #e60023, #ff7675);
+            color: white;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 15px;
+            flex-shrink: 0;
+        }
+        .pinterest-pin-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #0f172a;
+            margin: 0;
+            line-height: 1.3;
+            word-break: break-word;
+        }
+        .pinterest-desc-box {
+            background: #f8fafc;
+            border: 1px solid #f1f5f9;
+            border-radius: 16px;
+            padding: 12px 14px;
+        }
+        .pinterest-hashtags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            font-size: 13px;
+            color: #2563eb;
+            font-weight: 500;
+            word-break: break-word;
+        }
+        .pinterest-external-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: #64748b;
+            font-size: 12px;
+            text-decoration: none;
+        }
+        .pinterest-external-link:hover {
+            color: #e60023;
+            text-decoration: underline;
+        }
+        .pinterest-use-big-btn {
+            width: 100%;
+            background: #e60023;
+            color: white;
+            border: none;
+            padding: 14px 20px;
+            font-size: 15px;
+            font-weight: 700;
+            border-radius: 28px;
+            cursor: pointer;
+            box-shadow: 0 6px 20px rgba(230,0,35,0.3);
+            transition: all 0.2s;
+            text-align: center;
+        }
+        .pinterest-use-big-btn:hover {
+            background: #ad081b;
+            transform: translateY(-1px);
+            box-shadow: 0 8px 25px rgba(230,0,35,0.4);
+        }
+        .pinterest-detail-right {
+            flex: 0.95;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        #pinterestRelatedGrid {
+            column-count: 2;
+            column-gap: 12px;
+            width: 100%;
+        }
+        @media (max-width: 768px) {
+            .pinterest-box {
+                width: 98% !important;
+                height: 94vh !important;
+                max-height: 94vh !important;
+                padding: 12px 10px !important;
+                border-radius: 16px !important;
+            }
+            .pinterest-detail-container {
+                flex-direction: column !important;
+                overflow-y: auto !important;
+                -webkit-overflow-scrolling: touch;
+                gap: 14px !important;
+                padding-bottom: 24px;
+            }
+            .pinterest-detail-card {
+                flex-direction: column !important;
+                max-height: none !important;
+                border-radius: 20px !important;
+                flex: none !important;
+                width: 100% !important;
+            }
+            .pinterest-card-img-wrap {
+                min-width: 0 !important;
+                width: 100% !important;
+                max-height: 380px !important;
+            }
+            .pinterest-card-img-wrap img {
+                max-height: 380px !important;
+                width: 100% !important;
+                object-fit: contain;
+            }
+            .pinterest-card-info-wrap {
+                min-width: 0 !important;
+                padding: 14px 12px !important;
+                gap: 10px !important;
+                overflow-y: visible !important;
+            }
+            .pinterest-pin-title {
+                font-size: 17px !important;
+            }
+            .pinterest-url-bar {
+                max-width: 200px !important;
+                padding: 6px 10px !important;
+                font-size: 11px !important;
+            }
+            .pinterest-back-circle-btn {
+                width: 36px !important;
+                height: 36px !important;
+                touch-action: manipulation;
+            }
+            .pinterest-detail-right {
+                flex: none !important;
+                width: 100% !important;
+            }
+            #pinterestRelatedGrid {
+                column-count: 2 !important;
+                column-gap: 8px !important;
+            }
+        }
+    </style>
+
+    <!-- Pinterest Search Modal -->
+    <div class="admin-modal-overlay" id="pinterestModal">
+        <div class="pinterest-box" style="background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(20px); border: 1px solid rgba(200, 215, 235, 0.8); border-radius: 24px; width: 95%; max-width: 1150px; height: 90vh; display: flex; flex-direction: column; padding: 24px; box-shadow: 0 30px 60px rgba(0, 0, 0, 0.15);">
+            
+            <!-- VIEW 1: Search View (Gambar 1) -->
+            <div id="pinterestSearchView" style="display: flex; flex-direction: column; flex: 1; min-height: 0;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="#E60023" stroke="none"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.08 3.16 9.42 7.63 11.16-.1-.95-.2-2.41.04-3.45.21-.92 1.38-5.84 1.38-5.84s-.35-.7-.35-1.74c0-1.63.95-2.85 2.13-2.85 1.01 0 1.5.76 1.5 1.67 0 1.01-.65 2.53-.98 3.93-.28 1.17.59 2.13 1.74 2.13 2.1 0 3.7-2.21 3.7-5.4 0-2.82-2.03-4.79-4.93-4.79-3.37 0-5.35 2.53-5.35 5.14 0 .97.37 2.01.84 2.58.09.1.1.2.07.31-.09.38-.3 1.25-.34 1.44-.05.21-.18.25-.4.15-1.5-.7-2.43-2.9-2.43-4.66 0-3.8 2.76-7.29 7.97-7.29 4.19 0 7.45 2.98 7.45 6.97 0 4.16-2.62 7.51-6.26 7.51-1.22 0-2.38-.64-2.77-1.39l-.75 2.87c-.27 1.04-1.02 2.34-1.52 3.14 1.17.36 2.42.56 3.7.56 6.63 0 12-5.37 12-12S18.63 0 12 0z"/></svg>
+                        <h2 style="color: var(--text-primary); font-size: 1.5rem; font-weight: 700;">Pinterest Search</h2>
+                    </div>
+                    <button class="close-page-btn" id="pinterestCloseBtn">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                </div>
+                
+                <div style="display: flex; gap: 12px; margin-bottom: 12px;">
+                    <input type="text" id="pinterestSearchInput" class="admin-input" placeholder="Cari foto estetika Pinterest..." style="flex: 1;">
+                    <button class="admin-btn admin-btn-submit" id="pinterestSearchBtn" style="flex: 0 0 auto; width: 120px;">Search</button>
+                </div>
+                
+                <!-- Tag Pills Bar (Dynamically populated according to search query) -->
+                <div class="pinterest-tags-bar" id="pinterestTagsBar">
+                </div>
+                
+                <div id="pinterestLoading" class="hidden" style="text-align: center; margin: 20px 0; color: var(--text-secondary);">
+                    <svg class="spinner-ring" viewBox="0 0 50 50" style="width: 30px; height: 30px; border-radius: 50%; border: 3px solid var(--accent-blue-soft); border-top-color: var(--accent-blue); animation: spin 1s linear infinite; margin: 0 auto;"></svg>
+                    <p style="margin-top: 10px;">Mencari di Pinterest...</p>
+                </div>
+                
+                <div id="pinterestScroll" style="flex: 1; overflow-y: auto; overflow-x: hidden; padding-right: 8px; min-height: 0;">
+                    <div id="pinterestGrid" style="width: 100%;">
+                        <!-- Masonry grid items -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW 2: Pin Detail & More Like This (Persis Gambar 2) -->
+            <div id="pinterestDetailView" style="display: none; flex-direction: column; flex: 1; min-height: 0;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid rgba(0,0,0,0.08);">
+                    <div style="display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0;">
+                        <button class="pinterest-back-circle-btn" id="pinterestBackBtn" title="Kembali ke Hasil Pencarian">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                        </button>
+                        <div class="pinterest-url-bar" id="pinterestDetailUrlBar">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                            <span id="pinterestDetailUrlText" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">id.pinterest.com/pin/...</span>
+                        </div>
+                    </div>
+                    
+                    <button class="close-page-btn" id="pinterestDetailCloseBtn">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                </div>
+                
+                <div class="pinterest-detail-container">
+                    <!-- Left: Main Pin Detail Card (Persis Gambar 2) -->
+                    <div class="pinterest-detail-card">
+                        <div class="pinterest-card-img-wrap">
+                            <img id="pinterestDetailImg" src="" alt="Pin Detail">
+                        </div>
+                        
+                        <div class="pinterest-card-info-wrap">
+                            <!-- Action Row (Like, Share, More, Save) -->
+                            <div class="pinterest-action-row">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <button class="pin-icon-btn" id="pinterestLikeBtn" title="Suka">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                                        <span id="pinterestDetailLikes" style="font-size: 13px; font-weight: 700; color: #333;">3</span>
+                                    </button>
+                                    <button class="pin-icon-btn" id="pinterestShareBtn" title="Bagikan">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>
+                                    </button>
+                                    <button class="pin-icon-btn" title="Lainnya">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="2"></circle><circle cx="19" cy="12" r="2"></circle><circle cx="5" cy="12" r="2"></circle></svg>
+                                    </button>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <button class="pinterest-save-btn" id="pinterestDetailSaveBtn">Save</button>
+                                </div>
+                            </div>
+                            
+                            <!-- Author Profile -->
+                            <div class="pinterest-author-row">
+                                <div class="pinterest-author-avatar" id="pinterestAuthorAvatar">C</div>
+                                <div style="display: flex; flex-direction: column;">
+                                    <span id="pinterestDetailAuthor" style="font-size: 14px; font-weight: 600; color: #111;">calyx swartz</span>
+                                    <span style="font-size: 11px; color: #767676;">Pembuat Pin</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Pin Title -->
+                            <h2 id="pinterestDetailTitle" class="pinterest-pin-title">zee jkt48</h2>
+                            
+                            <!-- Description & Tags -->
+                            <div class="pinterest-desc-box">
+                                <div style="font-size: 12px; font-weight: 700; color: #64748b; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Description</div>
+                                <div id="pinterestDetailTags" class="pinterest-hashtags">#zeejkt48 #jkt48zee #aziziasadel #gen7 #jkt48</div>
+                            </div>
+                            
+                            <!-- Link to Pinterest -->
+                            <div style="margin-top: 2px;">
+                                <a id="pinterestDetailPinLink" href="#" target="_blank" class="pinterest-external-link">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                                    <span id="pinterestDetailPinLinkText">Buka di Pinterest</span>
+                                </a>
+                            </div>
+                            
+                            <!-- Main Big Red CTA Button -->
+                            <div style="margin-top: auto; padding-top: 14px;">
+                                <button class="pinterest-use-big-btn" id="pinterestDetailUseBtn">
+                                    ✓ Gunakan Gambar Ini di AI
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Right: Foto Terkait (More like this) (Persis Gambar 2) -->
+                    <div class="pinterest-detail-right">
+                        <div style="display: flex; align-items: center; justify-content: space-between; padding-bottom: 8px; border-bottom: 1px solid rgba(0,0,0,0.06);">
+                            <h4 style="font-size: 1.05rem; font-weight: 700; color: var(--text-primary); margin: 0;">Foto Terkait (More like this)</h4>
+                            <span style="font-size: 0.75rem; color: var(--text-secondary);">Klik untuk telusuri lebih dalam</span>
+                        </div>
+                        
+                        <div id="pinterestRelatedLoading" class="hidden" style="text-align: center; padding: 25px; color: var(--text-secondary);">
+                            <div class="spinner-ring" style="width: 24px; height: 24px; border: 2px solid var(--accent-blue-soft); border-top-color: var(--accent-blue); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 8px;"></div>
+                            <span style="font-size: 12px;">Mencari foto terkait...</span>
+                        </div>
+                        
+                        <div style="flex: 1; overflow-y: auto; overflow-x: hidden; padding-right: 4px;">
+                            <div id="pinterestRelatedGrid">
+                                <!-- Related pins masonry -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+    
+    <!-- Pinterest Confirm Dialog -->
+    <div class="admin-modal-overlay" id="pinterestConfirmModal" style="z-index: 10000;">
+        <div class="admin-login-box" style="text-align: center;">
+            <h3 style="color: var(--text-primary); margin-bottom: 16px; font-size: 1.2rem;">Use this Image?</h3>
+            <div style="margin-bottom: 20px; border-radius: 12px; overflow: hidden; background: var(--bg-tertiary);">
+                <img id="pinterestConfirmImg" src="" style="width: 100%; max-height: 250px; object-fit: contain;">
+            </div>
+            <div class="admin-actions">
+                <button class="admin-btn admin-btn-cancel" id="pinterestConfirmCancelBtn">Cancel</button>
+                <button class="admin-btn admin-btn-submit" id="pinterestConfirmYesBtn">Yes, Use It</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Save Prompt Modal -->
+    <div class="admin-modal-overlay" id="adminSavePromptModal" style="z-index: 10002;">
+        <div class="admin-login-box" style="max-width: 440px; text-align: left;">
+            <div class="admin-login-header">
+                <div class="admin-logo-icon" style="background: rgba(236, 72, 153, 0.12); border-color: rgba(236, 72, 153, 0.35); margin: 0 auto 10px auto;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ec4899" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                </div>
+                <h2 style="font-size: 1.15rem; color: var(--text-primary); margin-bottom: 4px; text-align: center;">Simpan Preset Prompt Admin</h2>
+                <p id="adminSavePromptSubtitle" style="font-size: 0.8rem; color: var(--text-secondary); text-align: center; margin: 0;">Simpan prompt ini untuk digunakan cepat kapan saja.</p>
+            </div>
+            <div class="admin-input-group" style="margin-top: 14px;">
+                <label style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-secondary); font-weight: 600;">Nama Preset</label>
+                <input type="text" id="adminSavePromptTitleInput" class="admin-input" placeholder="contoh: Cinematic 8K Ultra, Anime Soft..." style="width: 100%; box-sizing: border-box;">
+            </div>
+            <div class="admin-input-group" style="margin-top: 10px;">
+                <label style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-secondary); font-weight: 600;">Isi Prompt</label>
+                <textarea id="adminSavePromptContentInput" class="admin-input" rows="3" style="width: 100%; box-sizing: border-box; resize: vertical; font-size: 0.82rem; font-family: inherit;"></textarea>
+            </div>
+            <div class="admin-actions" style="margin-top: 18px; display: flex; gap: 10px;">
+                <button type="button" class="admin-btn admin-btn-cancel" id="adminSavePromptCancelBtn" style="flex: 1;">Batal</button>
+                <button type="button" class="admin-btn admin-btn-submit" id="adminSavePromptConfirmBtn" style="flex: 1; background: linear-gradient(135deg, #ec4899, #db2777); border: none; color: white;">Simpan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Token Delete Confirmation Modal -->
+    <div class="admin-modal-overlay" id="adminDeleteTokenModal">
+        <div class="admin-login-box" style="max-width: 440px; text-align: left;">
+            <div class="admin-login-header">
+                <div class="admin-logo-icon" style="background: rgba(239, 68, 68, 0.12); border-color: rgba(239, 68, 68, 0.35); margin: 0 auto 10px auto;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                </div>
+                <h2 style="font-size: 1.15rem; color: var(--text-primary); margin-bottom: 4px; text-align: center;">Konfirmasi Hapus Token</h2>
+                <p style="font-size: 0.82rem; color: var(--text-secondary); text-align: center; margin: 0;">Apakah kamu yakin ingin menghapus token ini secara permanen?</p>
+            </div>
+            <div style="background: rgba(240, 246, 255, 0.6); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-color); margin-top: 14px;">
+                <div style="font-size: 0.72rem; color: var(--text-tertiary); font-weight: 600; text-transform: uppercase;">Token ID:</div>
+                <div id="deleteTokenTargetId" style="font-family: monospace; font-size: 0.85rem; color: #0f172a; word-break: break-all; margin-top: 4px; font-weight: 600;">hf_...</div>
+                <div id="deleteTokenTargetInfo" style="font-size: 0.78rem; color: var(--text-secondary); margin-top: 4px;">Status: 🔴 Mati</div>
+            </div>
+            <div class="admin-actions" style="margin-top: 20px; display: flex; gap: 10px;">
+                <button type="button" class="admin-btn admin-btn-cancel" id="btnCancelDeleteToken" style="flex: 1;">Batal (Cancel)</button>
+                <button type="button" class="admin-btn" id="btnConfirmDeleteToken" style="flex: 1; background: #ef4444; border: none; color: white; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);">Hapus Permanen</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Toast -->
+    <div class="admin-toast" id="adminToast">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+        <span id="adminToastText">Admin mode activated</span>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/utils.js?v=7"></script>
+    <script src="js/notifications.js"></script>
+    <script src="js/sidebar.js"></script>
+    <script src="js/home.js"></script>
+    <script src="js/chat.js?v=4"></script>
+    <script src="js/image.js?v=7"></script>
+    <script src="js/i2v.js?v=7"></script>
+    <script src="js/pinterest.js"></script>
+    <script src="js/quota.js"></script>
+    <script src="js/settings.js"></script>
+    <script src="js/brain-animation.js?v=5"></script>
+    <script src="js/admin.js"></script>
+    <script src="js/app.js?v=7"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize Background Auto-Updater
+            try { if (window.Utils && Utils.initAutoUpdater) Utils.initAutoUpdater(); } catch(e){}
+
+            // Initialize Notifications
+            try { if (window.Notifications) Notifications.init(); } catch(e){}
+
+            // Update Quota UI on load
+            try { if (window.QuotaManager) QuotaManager.updateUI(); } catch(e){}
+            
+            // Guarantee I2V and ImageEditor restore state
+            try { if (typeof I2V !== 'undefined' && typeof I2V.restoreState === 'function') I2V.restoreState(); } catch(e){}
+            try { if (typeof ImageEditor !== 'undefined' && typeof ImageEditor.restoreState === 'function') ImageEditor.restoreState(); } catch(e){}
+
+            const storedUser = localStorage.getItem('novaUser');
+            if (storedUser) {
+                try {
+                    const user = JSON.parse(storedUser);
+                    
+                    // Update Header
+                    const avatarImg = document.getElementById('headerAvatarImg');
+                    const userNameSpan = document.getElementById('headerUserName');
+                    
+                    if (avatarImg && user.picture) avatarImg.src = user.picture;
+                    if (userNameSpan && user.name) userNameSpan.textContent = user.name;
+                    
+                    // Update Settings Modal Profile
+                    const settingsAvatar = document.getElementById('settingsAvatar');
+                    const settingsName = document.getElementById('settingsName');
+                    const settingsEmail = document.getElementById('settingsEmail');
+                    
+                    if (settingsAvatar && user.picture) settingsAvatar.src = user.picture;
+                    if (settingsName && user.name) settingsName.textContent = user.name;
+                    if (settingsEmail && user.email) settingsEmail.textContent = user.email;
+                    
+                    // Update greeting if on home page
+                    const greetingName = document.querySelector('.greeting-text h1');
+                    if (greetingName && user.name) {
+                        const firstName = user.name.split(' ')[0];
+                        greetingName.innerHTML = `Welcome back, <span style="color: var(--accent-blue);">${firstName}</span> ✨`;
+                    }
+
+                    // Global live ban state & UI handler
+                    window.isCurrentUserBanned = false;
+                    window.currentUserBanInfo = null;
+
+                    function updateBanOverlay(isBanned, banData) {
+                        window.isCurrentUserBanned = !!isBanned;
+                        window.currentUserBanInfo = banData || null;
+
+                        const bannedOverlay = document.getElementById('userBannedOverlay');
+                        const badgeEl = document.getElementById('bannedStatusBadge');
+                        const expRow = document.getElementById('bannedExpiresRow');
+                        const expEl = document.getElementById('bannedExpiresText');
+                        const reasonEl = document.getElementById('bannedReasonText');
+
+                        if (!bannedOverlay) return;
+
+                        if (isBanned) {
+                            bannedOverlay.classList.remove('hidden');
+                            if (banData?.type === 'perm') {
+                                if (badgeEl) badgeEl.textContent = '🔴 Ban Permanen';
+                                if (expRow) expRow.style.display = 'none';
+                            } else {
+                                if (badgeEl) badgeEl.textContent = '🟡 Ban Sementara';
+                                if (expRow) expRow.style.display = 'flex';
+                                if (expEl && banData?.expiresAt) {
+                                    expEl.textContent = new Date(banData.expiresAt).toLocaleString('id-ID');
+                                }
+                            }
+                            if (reasonEl) reasonEl.textContent = banData?.reason || 'Pelanggaran aturan studio';
+                        } else {
+                            // Automatically lift and close overlay immediately when unbanned
+                            bannedOverlay.classList.add('hidden');
+                        }
+                    }
+
+                    window.checkUserBanImmediate = async function() {
+                        if (!user || !user.email) return false;
+                        try {
+                            const res = await fetch('/api/users/sync', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ action: 'check_ban', email: user.email })
+                            });
+                            if (res.ok) {
+                                const data = await res.json();
+                                updateBanOverlay(data.banned, data.ban);
+                                return data.banned;
+                            }
+                        } catch (e) {}
+                        return window.isCurrentUserBanned;
+                    };
+
+                    // Global CCTV Activity Logger (Records non-admin user prompt & actions)
+                    window.logUserActivity = function(type, prompt, meta = {}) {
+                        try {
+                            const userStr = localStorage.getItem('novaUser');
+                            if (!userStr) return;
+                            const u = JSON.parse(userStr);
+                            // Do not log admin actions as requested
+                            if (window.Admin && Admin.isLoggedIn) return;
+                            if (u.email && (u.email.toLowerCase().includes('admin') || u.email.toLowerCase().includes('crostiagem') || u.isAdmin)) return;
+
+                            const payload = {
+                                action: 'log',
+                                entry: {
+                                    id: 'act_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+                                    timestamp: new Date().toISOString(),
+                                    userEmail: u.email || 'anonymous',
+                                    userName: u.name || 'User',
+                                    userPicture: u.picture || '',
+                                    authProvider: u.authProvider || 'google',
+                                    type: type, // 'chat', 'image_gen', 'video_gen', 'login'
+                                    prompt: (prompt || '').trim(),
+                                    model: meta.model || '',
+                                    details: meta.details || '',
+                                    previewUrl: meta.previewUrl || ''
+                                }
+                            };
+
+                            fetch('/api/activity', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(payload),
+                                keepalive: true
+                            }).catch(() => {});
+                        } catch (e) {}
+                    };
+
+                    // Initial user registration & sync
+                    if (user && user.email) {
+                        fetch('/api/users/sync', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ action: 'sync', user: user }),
+                            keepalive: true
+                        }).then(r => r.json()).then(data => {
+                            updateBanOverlay(data && data.banned, data?.ban);
+                        }).catch((e) => console.warn("Dashboard sync failed:", e));
+
+                        // Continuous Real-Time Ban & Unban Heartbeat (Every 3 seconds)
+                        setInterval(async () => {
+                            try {
+                                const res = await fetch('/api/users/sync', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ action: 'check_ban', email: user.email })
+                                });
+                                if (res.ok) {
+                                    const data = await res.json();
+                                    updateBanOverlay(data.banned, data.ban);
+                                }
+                            } catch (err) {}
+                        }, 3000);
+
+                        // Record Login CCTV Activity
+                        window.logUserActivity('login', 'User membuka dashboard studio', { details: 'Dashboard Online' });
+                    }
+                } catch (e) {
+                    console.error('Error parsing user data', e);
+                }
+            } else {
+                // Keamanan: Jika belum login, tendang langsung ke /login
+                window.location.replace('/login');
+                return;
+            }
+            
+            // Logout logic -> Redirect to Halaman Utama
+            const logoutBtns = [document.getElementById('logoutBtn'), document.getElementById('settingsLogoutBtn'), document.getElementById('btnBannedLogout')];
+            logoutBtns.forEach(btn => {
+                if (btn) {
+                    btn.addEventListener('click', () => {
+                        localStorage.removeItem('novaUser');
+                        window.location.href = '/';
+                    });
+                }
+            });
+
+            // Mode Anti-Lag / Hemat Performa (HP Kentang & High FPS)
+            const liteModeBtn = document.getElementById('headerLiteModeBtn');
+            const liteModeTxt = document.getElementById('liteModeBtnText');
+            
+            function applyLiteModeUI(isLite) {
+                if (isLite) {
+                    document.body.classList.add('lite-mode');
+                    if (window.brainAnimation) window.brainAnimation.pause();
+                    if (liteModeBtn) {
+                        liteModeBtn.style.background = 'rgba(16, 185, 129, 0.15)';
+                        liteModeBtn.style.borderColor = '#10b981';
+                        liteModeBtn.style.color = '#059669';
+                    }
+                    if (liteModeTxt) liteModeTxt.textContent = 'Anti-Lag: ON';
+                } else {
+                    document.body.classList.remove('lite-mode');
+                    if (window.brainAnimation) window.brainAnimation.resume();
+                    if (liteModeBtn) {
+                        liteModeBtn.style.background = 'rgba(241, 245, 249, 0.85)';
+                        liteModeBtn.style.borderColor = 'var(--border-color)';
+                        liteModeBtn.style.color = 'var(--text-secondary)';
+                    }
+                    if (liteModeTxt) liteModeTxt.textContent = 'Anti-Lag';
+                }
+            }
+
+            // Restore initial state from localStorage
+            const initialLiteState = localStorage.getItem('nova_lite_mode') === 'true';
+            applyLiteModeUI(initialLiteState);
+
+            if (liteModeBtn) {
+                liteModeBtn.addEventListener('click', () => {
+                    const currentLite = document.body.classList.contains('lite-mode');
+                    const newLite = !currentLite;
+                    localStorage.setItem('nova_lite_mode', newLite ? 'true' : 'false');
+                    applyLiteModeUI(newLite);
+                    if (newLite) {
+                        Utils.toast('⚡ Mode Anti-Lag diaktifkan (Performa maksimal & hemat baterai)', 'success');
+                    } else {
+                        Utils.toast('✨ Animasi & efek visual normal diaktifkan', 'info');
+                    }
+                });
+            }
+
+            // Hard Refresh & Clear App Cache Button (For Mobile & PC)
+            const hardRefreshBtn = document.getElementById('headerHardRefreshBtn');
+            if (hardRefreshBtn) {
+                hardRefreshBtn.addEventListener('click', () => {
+                    const svg = hardRefreshBtn.querySelector('svg');
+                    if (svg) svg.style.animation = 'spin 0.8s linear infinite';
+                    
+                    // Clear generation pending flags
+                    localStorage.removeItem('nova_i2v_pending_job');
+                    localStorage.removeItem('nova_i2i_pending_job');
+                    
+                    // If ServiceWorker exists, unregister
+                    if ('serviceWorker' in navigator) {
+                        navigator.serviceWorker.getRegistrations().then(registrations => {
+                            for (let registration of registrations) {
+                                registration.unregister();
+                            }
+                        });
+                    }
+                    
+                    // Clear caches API
+                    if ('caches' in window) {
+                        caches.keys().then(names => {
+                            for (let name of names) caches.delete(name);
+                        });
+                    }
+                    
+                    setTimeout(() => {
+                        // Hard reload with cache buster query
+                        const cleanUrl = window.location.pathname + '?_v=' + Date.now();
+                        window.location.replace(cleanUrl);
+                    }, 400);
+                });
+            }
+
+            // Anti-Zoom & Anti-Bug Mobile: Cegah zoom tidak sengaja saat double tap
+            let lastTouchEnd = 0;
+            document.addEventListener('touchend', (e) => {
+                const now = Date.now();
+                if (now - lastTouchEnd <= 300) {
+                    if (!e.target.closest('input, textarea, select')) {
+                        e.preventDefault();
+                    }
+                }
+                lastTouchEnd = now;
+            }, { passive: false });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,53 @@
+name: NOVA Video Engine (Pabrik Gaib)
+
+on:
+  workflow_dispatch:
+    inputs:
+      prompt:
+        description: 'Prompt untuk video'
+        required: true
+        default: 'A majestic flying cat, highly detailed'
+      loops:
+        description: 'Jumlah jahitan (Misal: 5 = 35 detik)'
+        required: true
+        default: '5'
+      image_url:
+        description: 'Link Gambar Awal (Harus URL dari internet)'
+        required: true
+        default: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba'
+
+jobs:
+  generate-video:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Bangunkan Robot & Buka Folder
+        uses: actions/checkout@v4
+        
+      - name: Siapkan Mesin Python & FFmpeg
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          
+      - name: Instal Kebutuhan (Bensin Mesin)
+        run: |
+          pip install gradio_client requests Pillow httpx
+          sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: Mulai Menjahit Video 30 Detik!
+        run: python engine.py "${{ github.event.inputs.prompt }}" "${{ github.event.inputs.loops }}" "${{ github.event.inputs.image_url }}"
+        
+      - name: Upload Video ke Catbox (Public URL)
+        run: |
+          URL=$(curl -s -F "reqtype=fileupload" -F "fileToUpload=@hasil_akhir.mp4" https://catbox.moe/user/api.php)
+          echo "$URL" > latest_video.txt
+          echo "Video berhasil diupload ke: $URL"
+          
+      - name: Simpan URL ke GitHub (Agar Web Bisa Membacanya)
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add latest_video.txt
+          git commit -m "Update latest video url" || echo "No changes to commit"
+          git push

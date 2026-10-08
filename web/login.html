@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Sign In - NOVA AI Studio</title>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/animations.css">
+    <link rel="stylesheet" href="css/login.css">
+    <!-- Google Identity Services -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+    <div class="login-layout">
+        
+        <!-- Back Button -->
+        <a href="/" class="back-button">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            Back to Home
+        </a>
+        
+        <!-- Left Panel: Brand & Animation -->
+        <div class="login-brand">
+            <!-- AI Brain Background -->
+            <div id="ai-background" class="ai-background">
+                <canvas id="brainCanvas"></canvas>
+            </div>
+            
+            <div class="brand-content">
+                <a href="/" style="text-decoration: none;">
+                    <div class="logo-container large-logo">
+                        <div class="logo-icon">
+                            <img src="assets/logo.png" alt="NOVA Logo">
+                        </div>
+                        <span class="logo-text">NOVA</span>
+                    </div>
+                </a>
+                <h2 class="brand-tagline">Enter the creative singularity.</h2>
+                <p class="brand-desc">Your ultimate workspace for AI-driven image and video generation.</p>
+            </div>
+        </div>
+        
+        <!-- Right Panel: Login Form -->
+        <div class="login-form-container">
+            <div class="login-card">
+                <div class="login-header">
+                    <h2>Welcome back</h2>
+                    <p>Please enter your details to sign in.</p>
+                </div>
+                
+                <form class="auth-form" action="/dashboard" method="GET">
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <div class="input-wrapper">
+                            <svg class="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                            <input type="email" id="email" placeholder="Enter your email" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <div class="input-wrapper">
+                            <svg class="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+                            <input type="password" id="password" placeholder="••••••••" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-options">
+                        <label class="checkbox-container">
+                            <input type="checkbox" checked>
+                            <span class="checkmark"></span>
+                            Remember me
+                        </label>
+                        <a href="#" class="forgot-link">Forgot password?</a>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary btn-block btn-submit">Sign In</button>
+                    
+                    <div class="divider">
+                        <span>OR</span>
+                    </div>
+                    
+                    <div id="g_id_onload"
+                         data-client_id="934485301951-ia7lsj7d02b5pd4lmn7pjis8h77h2tkb.apps.googleusercontent.com"
+                         data-context="signin"
+                         data-ux_mode="popup"
+                         data-callback="handleGoogleLogin"
+                         data-auto_prompt="false">
+                    </div>
+                    
+                    <div class="g_id_signin"
+                         data-type="standard"
+                         data-shape="rectangular"
+                         data-theme="outline"
+                         data-text="signin_with"
+                         data-size="large"
+                         data-logo_alignment="left"
+                         style="display: flex; justify-content: center; margin-top: 10px; width: 100%;">
+                    </div>
+                </form>
+                
+                <p class="signup-text">Don't have an account? <a href="#">Sign up</a></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/brain-animation.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            new BrainAnimation('brainCanvas');
+        });
+
+        async function syncUserToCloud(user) {
+            try {
+                const res = await fetch('/api/users/sync', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'sync', user: user }),
+                    keepalive: true
+                });
+                return await res.json();
+            } catch (e) {
+                console.warn("User sync to cloud failed:", e);
+                return null;
+            }
+        }
+
+        // Google Login Callback (Membaca data asli akun Google yang dipilih pengguna)
+        async function handleGoogleLogin(response) {
+            if (!response || !response.credential) {
+                alert("Gagal menghubungkan ke Google. Silakan coba lagi.");
+                return;
+            }
+            const responsePayload = decodeJwtResponse(response.credential);
+            
+            const user = {
+                name: responsePayload.name || 'User',
+                email: responsePayload.email || '',
+                picture: responsePayload.picture || 'assets/cat_portrait.jpg',
+                authProvider: 'google'
+            };
+
+            const syncResult = await syncUserToCloud(user);
+            if (syncResult && syncResult.banned) {
+                const isPerm = (syncResult.ban?.type === 'perm');
+                const expStr = syncResult.ban?.expiresAt ? `\nBerakhir Pada: ${new Date(syncResult.ban.expiresAt).toLocaleString('id-ID')}` : '';
+                alert(`⛔ AKSES AKUN DITANGGUHKAN!\n\nStatus: ${isPerm ? 'Ban Permanen' : 'Ban Sementara'}\nAlasan: ${syncResult.ban?.reason || 'Pelanggaran aturan studio'}${expStr}\n\nSilakan hubungi admin jika Anda merasa ini keliru.`);
+                localStorage.removeItem('novaUser');
+                return;
+            }
+
+            localStorage.setItem('novaUser', JSON.stringify(user));
+            window.location.href = '/dashboard';
+        }
+
+        // Email Form Submit Handler (Harus memasukkan email sendiri)
+        document.querySelector('.auth-form')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const emailInp = document.getElementById('email');
+            const email = emailInp ? emailInp.value.trim() : '';
+            if (!email) {
+                alert("Silakan masukkan email kamu!");
+                return;
+            }
+            let name = email.split('@')[0];
+            name = name.charAt(0).toUpperCase() + name.slice(1);
+            const user = {
+                name: name,
+                email: email,
+                picture: 'assets/cat_portrait.jpg',
+                authProvider: 'email'
+            };
+
+            const syncResult = await syncUserToCloud(user);
+            if (syncResult && syncResult.banned) {
+                const isPerm = (syncResult.ban?.type === 'perm');
+                const expStr = syncResult.ban?.expiresAt ? `\nBerakhir Pada: ${new Date(syncResult.ban.expiresAt).toLocaleString('id-ID')}` : '';
+                alert(`⛔ AKSES AKUN DITANGGUHKAN!\n\nStatus: ${isPerm ? 'Ban Permanen' : 'Ban Sementara'}\nAlasan: ${syncResult.ban?.reason || 'Pelanggaran aturan studio'}${expStr}\n\nSilakan hubungi admin jika Anda merasa ini keliru.`);
+                localStorage.removeItem('novaUser');
+                return;
+            }
+
+            localStorage.setItem('novaUser', JSON.stringify(user));
+            window.location.href = '/dashboard';
+        });
+        
+        // Decode JWT to JSON
+        function decodeJwtResponse(token) {
+            let base64Url = token.split('.')[1];
+            let base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            let jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+            return JSON.parse(jsonPayload);
+        }
+    </script>
+</body>
+</html>
