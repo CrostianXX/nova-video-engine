@@ -422,14 +422,14 @@ const I2V = {
             const lt = document.getElementById('i2vLoadingText');
             if (lt) lt.innerHTML = `Mengupload gambar...<br><span style="font-size: 11px; opacity: 0.8; font-weight: normal;">Tahap 1/3</span>`;
             
-            // 1. Upload image to Catbox
+            // 1. Upload image to tmpfiles.org (bisa diakses via CORS)
             const formData = new FormData();
-            formData.append('reqtype', 'fileupload');
-            formData.append('fileToUpload', this.uploadedImageFile);
+            formData.append('file', this.uploadedImageFile);
             
-            const catboxRes = await fetch('https://catbox.moe/user/api.php', { method: 'POST', body: formData });
-            if(!catboxRes.ok) throw new Error("Gagal mengupload gambar ke server.");
-            const imageUrl = await catboxRes.text();
+            const tmpfilesRes = await fetch('https://tmpfiles.org/api/v1/upload', { method: 'POST', body: formData });
+            if(!tmpfilesRes.ok) throw new Error("Gagal mengupload gambar ke server.");
+            const tmpData = await tmpfilesRes.json();
+            const imageUrl = tmpData.data.url.replace('tmpfiles.org/', 'tmpfiles.org/dl/');
             
             if (this.isCancelled) return;
             if (lt) lt.innerHTML = `Membangunkan Mesin Pabrik...<br><span style="font-size: 11px; opacity: 0.8; font-weight: normal;">Tahap 2/3</span>`;
