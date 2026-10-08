@@ -39,7 +39,8 @@ export async function onRequest(context) {
         }
 
         if (!catboxRes.ok) {
-            return new Response(JSON.stringify({ error: "Failed to upload to catbox" }), { 
+            const errText = await catboxRes.text();
+            return new Response(JSON.stringify({ error: "Failed to upload to catbox", details: errText }), { 
                 status: catboxRes.status,
                 headers: { "Access-Control-Allow-Origin": "*" } 
             });
