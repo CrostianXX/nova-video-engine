@@ -92,13 +92,9 @@ const Pinterest = {
         // Triggers from Dashboard
         const btnI2I = document.getElementById('pinterestSearchBtnI2I');
         const btnI2V = document.getElementById('pinterestSearchBtnI2V');
-        const pickerI2I = document.getElementById('pinterestPickerBtnI2I');
-        const pickerI2V = document.getElementById('pinterestPickerBtnI2V');
         
         if (btnI2I) btnI2I.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); this.openSearch('i2i'); });
-        if (pickerI2I) pickerI2I.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); this.openSearch('i2i'); });
         if (btnI2V) btnI2V.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); this.openSearch('i2v'); });
-        if (pickerI2V) pickerI2V.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); this.openSearch('i2v'); });
         
         // Modal Events
         if (this.closeBtn) this.closeBtn.addEventListener('click', () => this.closeSearch());
@@ -824,6 +820,9 @@ const Pinterest = {
                     }
                 }
             } else if (target === 'i2v') {
+                if (window.App && typeof App.switchPage === 'function') {
+                    App.switchPage('i2v');
+                }
                 const dt = new DataTransfer();
                 dt.items.add(file);
                 const fileInput = document.getElementById('i2vFileInput');
@@ -848,14 +847,6 @@ const Pinterest = {
                         };
                         reader.readAsDataURL(file);
                     }
-                }
-            if (target === 'i2i') {
-                if (window.App && typeof App.switchPage === 'function') {
-                    App.switchPage('image');
-                }
-            } else if (target === 'i2v') {
-                if (window.App && typeof App.switchPage === 'function') {
-                    App.switchPage('i2v');
                 }
             }
             

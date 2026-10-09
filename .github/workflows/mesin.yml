@@ -54,20 +54,12 @@ jobs:
           # Hapus file temporer klip agar repo bersih
           rm -f clip_*.mp4 frame_*.jpg start.jpg list.txt hasil_akhir.mp4
           
-          git add latest_video.mp4
-          git commit -m "Update latest video [skip ci]" || echo "No changes to commit"
-          
-          # Gunakan commit hash unik agar jsDelivr tidak pernah menyajikan video lama yang tercache!
-          COMMIT_HASH=$(git rev-parse HEAD)
-          URL="https://cdn.jsdelivr.net/gh/CrostianXX/nova-video-engine@${COMMIT_HASH}/latest_video.mp4"
+          TIMESTAMP=$(date +%s)
+          # Gunakan link direct raw GitHub dengan timestamp: 100% langsung terbit, tidak pernah 404, dan bebas cache!
+          URL="https://raw.githubusercontent.com/CrostianXX/nova-video-engine/main/latest_video.mp4?v=${TIMESTAMP}"
           echo "$URL" > latest_video.txt
           echo "Video URL siap: $URL"
           
-          git add latest_video.txt
-          git commit --amend --no-edit || true
-          
-          FINAL_HASH=$(git rev-parse HEAD)
-          URL="https://cdn.jsdelivr.net/gh/CrostianXX/nova-video-engine@${FINAL_HASH}/latest_video.mp4"
-          echo "$URL" > latest_video.txt
-          
+          git add latest_video.mp4 latest_video.txt
+          git commit -m "Update latest video [skip ci]" || echo "No changes to commit"
           git push origin HEAD:main --force

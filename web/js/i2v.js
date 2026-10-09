@@ -574,11 +574,9 @@ const I2V = {
                 .then(async res => {
                     if (!res.ok) throw new Error("HTTP " + res.status);
                     const blob = await res.blob();
-                    if (blob.size < 500) {
+                    if (blob.size < 10000) {
                         const txt = await blob.text();
-                        if (txt.includes('Invalid') || txt.includes('error')) {
-                            throw new Error(txt);
-                        }
+                        throw new Error("Respons video tidak valid (" + txt.slice(0, 100) + ")");
                     }
                     const mp4Blob = new Blob([blob], { type: 'video/mp4' });
                     const blobUrl = URL.createObjectURL(mp4Blob);
@@ -589,6 +587,8 @@ const I2V = {
                 })
                 .catch(err => {
                     console.warn("Blob conversion fallback:", err);
+                    videoEl.src = videoUrl;
+                    videoEl.load();
                     videoEl.play().catch(() => {});
                 });
         }
@@ -604,11 +604,9 @@ const I2V = {
                     const downloadSource = this.currentVideoBlobUrl || videoUrl;
                     const response = await fetch(downloadSource);
                     const blob = await response.blob();
-                    if (blob.size < 500) {
+                    if (blob.size < 10000) {
                         const txt = await blob.text();
-                        if (txt.includes('Invalid') || txt.includes('error')) {
-                            throw new Error("File tidak valid: " + txt);
-                        }
+                        throw new Error("File video belum siap atau rusak: " + txt.slice(0, 80));
                     }
                     const mp4Blob = new Blob([blob], { type: 'video/mp4' });
                     const url = window.URL.createObjectURL(mp4Blob);
@@ -624,7 +622,8 @@ const I2V = {
                     }, 500);
                     Utils.toast('Download video berhasil!', 'success');
                 } catch (e) {
-                    window.open(videoUrl, '_blank');
+                    console.error("Download error:", e);
+                    Utils.toast('Download gagal: ' + e.message, 'error');
                 }
             });
         }
