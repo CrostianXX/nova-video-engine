@@ -300,8 +300,24 @@ def download_image(url, filename="start.jpg"):
     return filename
 
 def extract_last_frame(video_path, output_image_path):
-    print(f"Mengekstrak frame terakhir dari {video_path}...")
-    command = f"ffmpeg -sseof -3 -i {video_path} -update 1 -q:v 1 {output_image_path} -y"
+    print(f"Mengekstrak frame terakhir dari {video_path} ke {output_image_path}...")
+    try:
+        import cv2
+        cap = cv2.VideoCapture(video_path)
+        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        if total_frames > 0:
+            cap.set(cv2.CAP_PROP_POS_FRAMES, total_frames - 1)
+            ret, frame = cap.read()
+            if ret and frame is not None and frame.size > 0:
+                cv2.imwrite(output_image_path, frame)
+                cap.release()
+                print(f"✅ Frame terakhir berhasil diekstrak dengan presisi tinggi via OpenCV ({total_frames} frame).")
+                return output_image_path
+        cap.release()
+    except Exception as e:
+        print(f"OpenCV notice ({e}), fallback ke FFmpeg...")
+
+    command = f"ffmpeg -sseof -0.1 -i {video_path} -vsync 0 -update 1 -q:v 1 {output_image_path} -y"
     subprocess.run(command, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     return output_image_path
 
@@ -316,8 +332,8 @@ def generate_video_clip(prompt, input_image):
             image_arg = handle_file(input_image)
             
             result = client.predict(
-                image_arg,              # Input Image
-                image_arg,              # Last Image
+                image_arg,              # Input Image (Start frame)
+                None,                   # Last Image (None = pure forward extension, tidak kembali ke awal!)
                 prompt,                 # Prompt Text
                 4,                      # Inference Steps
                 "blurry, chaotic, bad quality", # Negative
@@ -378,7 +394,10 @@ def main():
         
         last_frame = f"frame_{i}.jpg"
         extract_last_frame(clip_name, last_frame)
-        print(f"✅ Bagian {i+1} Selesai!")
+        if os.path.exists(last_frame) and os.path.getsize(last_frame) > 0:
+            print(f"✅ Bagian {i+1} Selesai! Frame terakhir ({os.path.getsize(last_frame)} bytes) siap dijadikan awal bagian {i+2}!")
+        else:
+            print(f"✅ Bagian {i+1} Selesai!")
             
     if video_clips:
         print("\n🧵 Menjahit semua klip menjadi satu video panjang...")

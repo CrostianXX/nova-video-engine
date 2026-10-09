@@ -32,7 +32,7 @@ jobs:
           
       - name: Instal Kebutuhan (Bensin Mesin)
         run: |
-          pip install gradio_client requests Pillow httpx
+          pip install gradio_client requests Pillow httpx opencv-python-headless
           sudo apt-get update && sudo apt-get install -y ffmpeg
 
       - name: Mulai Menjahit Video 30 Detik!
