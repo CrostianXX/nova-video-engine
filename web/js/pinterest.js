@@ -232,10 +232,6 @@ const Pinterest = {
     async performSearch(query, isAppend = false) {
         if (!query || !query.trim()) return;
         let cleanQ = query.trim();
-        // Pertajam algoritma indo
-        if (!cleanQ.toLowerCase().includes('indo') && !cleanQ.toLowerCase().includes('jkt48')) {
-            cleanQ += ' indonesia aesthetic';
-        }
         
         if (!isAppend) {
             this.currentQuery = cleanQ;
@@ -254,13 +250,28 @@ const Pinterest = {
         try {
             let images = [];
             
-            // Direct web chat backup (bahas.crostia.my.id)
+            // 1. Coba endpoint native Cloudflare Pages Function (/api/images/search)
+            try {
+                const res = await fetch(`/api/images/search?q=${encodeURIComponent(cleanQ)}&page=${this.currentPage}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data && Array.isArray(data.images) && data.images.length > 0) {
+                        images = data.images.filter(item => !String(item.id).startsWith('flickr'));
+                    }
+                }
+            } catch (errLocal) {
+                console.warn('Native /api/images/search error, falling back:', errLocal);
+            }
+            
+            // 2. Direct backup (bahas.crostia.my.id)
             if (!images || images.length === 0) {
                 try {
-                    const res2 = await fetch(`https://bahas.crostia.my.id/api/images/search?q=${encodeURIComponent(cleanQ)}`);
+                    const res2 = await fetch(`https://bahas.crostia.my.id/api/images/search?q=${encodeURIComponent(cleanQ)}&page=${this.currentPage}`);
                     if (res2.ok) {
                         const data2 = await res2.json();
-                        images = (data2.images || []).filter(item => !String(item.id).startsWith('flickr'));
+                        if (data2 && Array.isArray(data2.images) && data2.images.length > 0) {
+                            images = data2.images.filter(item => !String(item.id).startsWith('flickr'));
+                        }
                     }
                 } catch (err2) {
                     console.error('Direct backup error:', err2);
@@ -600,11 +611,27 @@ const Pinterest = {
         }
         
         try {
-            const res = await fetch(`/api/images/search?q=${encodeURIComponent(relatedQ)}&page=1`);
             let relatedImages = [];
-            if (res.ok) {
-                const data = await res.json();
-                relatedImages = (data.images || []).filter(item => item.url !== pinObj.url);
+            try {
+                const res = await fetch(`/api/images/search?q=${encodeURIComponent(relatedQ)}&page=1`);
+                if (res.ok) {
+                    const data = await res.json();
+                    relatedImages = (data.images || []).filter(item => item.url !== pinObj.url);
+                }
+            } catch (e1) {
+                console.warn('Local search failed, trying backup...', e1);
+            }
+            
+            if (!relatedImages || relatedImages.length === 0) {
+                try {
+                    const res2 = await fetch(`https://bahas.crostia.my.id/api/images/search?q=${encodeURIComponent(relatedQ)}&page=1`);
+                    if (res2.ok) {
+                        const data2 = await res2.json();
+                        relatedImages = (data2.images || []).filter(item => item.url !== pinObj.url);
+                    }
+                } catch (e2) {
+                    console.error('Related backup search failed:', e2);
+                }
             }
             
             if (relatedImages.length > 0) {
@@ -693,36 +720,77 @@ const Pinterest = {
         try {
             let blob = null;
             
-            // Coba lewat proxy corsproxy.org yang baru
+            const isImageBlob = (b) => {
+                if (!b || b.size < 500) return false;
+                if (b.type && (b.type.includes('text') || b.type.includes('html') || b.type.includes('json'))) return false;
+                return true;
+            };
+
+            // Strategi 1: Cloudflare Pages Proxy internal (/api/proxy)
             try {
-                const proxyUrl = `https://corsproxy.org/?${encodeURIComponent(url)}`;
-                const response = await fetch(proxyUrl);
+                const internalProxy = `/api/proxy?url=${encodeURIComponent(url)}`;
+                const response = await fetch(internalProxy);
                 if (response.ok) {
-                    blob = await response.blob();
-                }
-            } catch (err) {
-                console.warn('Proxy download failed, trying direct fetch...', err);
-            }
-            
-            // Jika proxy gagal, coba fetch langsung
-            if (!blob || blob.size === 0) {
-                try {
-                    const directRes = await fetch(url);
-                    if (directRes.ok) {
-                        blob = await directRes.blob();
+                    const candidate = await response.blob();
+                    if (isImageBlob(candidate)) {
+                        blob = candidate;
                     }
-                } catch (err2) {
-                    console.error('Direct fetch failed:', err2);
+                }
+            } catch (errInternal) {
+                console.warn('Internal proxy failed, trying alternatives...', errInternal);
+            }
+
+            // Strategi 2: Direct Fetch (jika CDN gambar mengizinkan CORS)
+            if (!blob) {
+                try {
+                    const directRes = await fetch(url, { mode: 'cors' });
+                    if (directRes.ok) {
+                        const candidate = await directRes.blob();
+                        if (isImageBlob(candidate)) {
+                            blob = candidate;
+                        }
+                    }
+                } catch (errDirect) {
+                    console.warn('Direct fetch failed:', errDirect);
+                }
+            }
+
+            // Strategi 3: External Reliable Image Proxies
+            if (!blob) {
+                const fallbacks = [
+                    `https://images.weserv.nl/?url=${encodeURIComponent(url)}&default=${encodeURIComponent(url)}`,
+                    `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`
+                ];
+                for (const fallbackUrl of fallbacks) {
+                    try {
+                        const fRes = await fetch(fallbackUrl);
+                        if (fRes.ok) {
+                            const candidate = await fRes.blob();
+                            if (isImageBlob(candidate)) {
+                                blob = candidate;
+                                break;
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('Fallback proxy failed:', fallbackUrl, e);
+                    }
                 }
             }
             
-            if (!blob || blob.size === 0) {
-                throw new Error('Gagal mengunduh file gambar.');
+            if (!blob || !isImageBlob(blob)) {
+                throw new Error('Gagal mengunduh file gambar asli (format tidak valid atau diblokir).');
+            }
+            
+            // Tentukan mime type yang aman
+            let mimeType = blob.type;
+            if (!mimeType || !mimeType.startsWith('image/')) {
+                mimeType = 'image/jpeg';
             }
             
             // Buat objek File
-            const filename = `pinterest_${Date.now()}.jpg`;
-            const file = new File([blob], filename, { type: blob.type || 'image/jpeg' });
+            const extension = mimeType.split('/')[1] || 'jpg';
+            const filename = `pinterest_${Date.now()}.${extension}`;
+            const file = new File([blob], filename, { type: mimeType });
             
             // Masukkan ke target editor
             if (target === 'i2i') {

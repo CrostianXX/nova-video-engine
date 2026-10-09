@@ -321,11 +321,28 @@ def extract_last_frame(video_path, output_image_path):
     subprocess.run(command, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     return output_image_path
 
-def generate_video_clip(prompt, input_image):
+def generate_video_clip(prompt, input_image, clip_index=0, base_seed=42):
     max_retries = 10
+    
+    # Negative prompt komprehensif untuk menghilangkan kecacatan, distorsi, mutasi tubuh, dan blur
+    negative_prompt = (
+        "blurry, low quality, chaotic, deformed, watermark, bad anatomy, "
+        "shaky camera, extra limbs, bad face, disfigured, distorted, "
+        "morphing, jittery, low resolution, artifacts, mutated hands, missing fingers, bad proportions"
+    )
+    
+    # Tingkatkan ketajaman prompt secara natural
+    clean_p = prompt.strip()
+    quality_enhancers = "high quality, cinematic lighting, sharp focus, natural smooth motion, highly detailed"
+    enhanced_prompt = f"{clean_p}, {quality_enhancers}"
+    
+    # Seed terkoordinasi antar sambungan klip (base_seed + offset beraturan)
+    # Ini menjaga konsistensi karakter, pencahayaan, dan gaya agar tidak loncat/flicker
+    clip_seed = (base_seed + clip_index * 37) % 2147483647
+    
     for attempt in range(max_retries):
         token = random.choice(TOKENS)
-        print(f"Menghubungkan ke AI Video dengan token {token[:8]}... (Percobaan {attempt+1}/{max_retries})")
+        print(f"Menghubungkan ke AI Video dengan token {token[:8]}... (Bagian {clip_index+1}, Percobaan {attempt+1}/{max_retries})")
         
         try:
             client = Client("Saravutw/WAN2.2_I2V_LIGHTNING_4-8step_custom", token=token)
@@ -333,18 +350,18 @@ def generate_video_clip(prompt, input_image):
             
             result = client.predict(
                 image_arg,              # Input Image (Start frame)
-                None,                   # Last Image (None = pure forward extension, tidak kembali ke awal!)
-                prompt,                 # Prompt Text
-                4,                      # Inference Steps
-                "blurry, chaotic, bad quality", # Negative
+                None,                   # Last Image (None = pure forward extension, tidak mengunci pose!)
+                enhanced_prompt,        # Prompt Text dengan modifier kualitas
+                6,                      # Inference Steps (dinaikkan ke 6 untuk eliminasi cacat & detail tajam)
+                negative_prompt,        # Negative Prompt komprehensif
                 5.0,                    # Duration (Float)
-                1.0,                    # Guidance Scale 1
-                1.0,                    # Guidance Scale 2
-                42,                     # Seed
-                True,                   # Randomize seed
-                5,                      # Video Quality
+                1.5,                    # Guidance Scale 1 (adherence lebih terarah)
+                1.5,                    # Guidance Scale 2
+                clip_seed,              # Seed terkoordinasi konsisten
+                False,                  # Randomize seed False agar konsisten antar potongan
+                7,                      # Video Quality (dinaikkan ke 7 untuk bitrate tinggi & jernih)
                 "UniPCMultistep",       # Scheduler
-                3.0,                    # Flow Shift
+                5.0,                    # Flow Shift optimal untuk stabilitas motion
                 16,                     # frame_multiplier (int)
                 False,                  # Safe Mode
                 True,                   # video_component
@@ -377,7 +394,8 @@ def main():
     loops = int(sys.argv[2])
     image_url = sys.argv[3]
     
-    print(f"🚀 Memulai Jahitan Video! | Loops: {loops} | Prompt: {prompt}")
+    base_seed = random.randint(100000, 99999999)
+    print(f"🚀 Memulai Jahitan Video! | Loops: {loops} | Base Seed: {base_seed} | Prompt: {prompt}")
     
     last_frame = download_image(image_url, "start.jpg")
     video_clips = []
@@ -386,7 +404,7 @@ def main():
         print(f"\n--- Memproses Bagian {i+1} dari {loops} ---")
         
         # We removed the try-except so the error throws loudly and fails the GH action
-        video_path = generate_video_clip(prompt, last_frame)
+        video_path = generate_video_clip(prompt, last_frame, clip_index=i, base_seed=base_seed)
         clip_name = f"clip_{i}.mp4"
         
         shutil.copy(video_path, clip_name)
