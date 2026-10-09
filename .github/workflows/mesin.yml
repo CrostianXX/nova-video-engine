@@ -38,16 +38,28 @@ jobs:
       - name: Mulai Menjahit Video 30 Detik!
         run: python engine.py "${{ github.event.inputs.prompt }}" "${{ github.event.inputs.loops }}" "${{ github.event.inputs.image_url }}"
         
-      - name: Upload Video ke Catbox (Public URL)
+      - name: Simpan Video ke Repository (CDN & Fast Direct Stream)
         run: |
-          URL=$(curl -s -F "reqtype=fileupload" -F "fileToUpload=@hasil_akhir.mp4" https://catbox.moe/user/api.php)
-          echo "$URL" > latest_video.txt
-          echo "Video berhasil diupload ke: $URL"
+          if [ ! -f hasil_akhir.mp4 ]; then
+            echo "Error: hasil_akhir.mp4 tidak ditemukan!"
+            exit 1
+          fi
+
+          # Salin hasil akhir ke latest_video.mp4
+          cp hasil_akhir.mp4 latest_video.mp4
           
-      - name: Simpan URL ke GitHub (Agar Web Bisa Membacanya)
-        run: |
+          TIMESTAMP=$(date +%s)
+          # Buat URL direct CDN jsDelivr dengan timestamp cache-buster
+          URL="https://cdn.jsdelivr.net/gh/CrostianXX/nova-video-engine@main/latest_video.mp4?v=${TIMESTAMP}"
+          echo "$URL" > latest_video.txt
+          echo "Video URL siap: $URL"
+          
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          git add latest_video.txt
-          git commit -m "Update latest video url" || echo "No changes to commit"
-          git push
+          git add latest_video.mp4 latest_video.txt
+          git commit -m "Update latest video [skip ci]" || echo "No changes to commit"
+          git pull --rebase origin main || true
+          git push origin main
+          
+          # Bersihkan cache CDN jsDelivr agar langsung menyajikan video baru
+          curl -s "https://purge.jsdelivr.net/gh/CrostianXX/nova-video-engine@main/latest_video.mp4" || true

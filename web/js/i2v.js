@@ -488,6 +488,10 @@ const I2V = {
                     const rawRes = await fetch('https://raw.githubusercontent.com/CrostianXX/nova-video-engine/main/latest_video.txt?t=' + Date.now());
                     finalVideoUrl = await rawRes.text();
                     finalVideoUrl = finalVideoUrl.trim();
+                    
+                    if (!finalVideoUrl || !finalVideoUrl.startsWith('http')) {
+                        throw new Error(finalVideoUrl ? ("Pabrik mengembalikan status: " + finalVideoUrl) : "Gagal mengambil link video dari pabrik.");
+                    }
                     break;
                 }
                 
@@ -555,9 +559,31 @@ const I2V = {
         if (videoControls) videoControls.classList.remove('hidden');
         
         if (videoEl) {
-            videoEl.src = videoUrl;
             videoEl.classList.remove('hidden');
-            videoEl.play().catch(() => {});
+            videoEl.src = videoUrl;
+            
+            // Konversi ke Blob URL agar pemutaran 100% lancar, anti-stutter, dan kompatibel semua browser
+            fetch(videoUrl)
+                .then(async res => {
+                    if (!res.ok) throw new Error("HTTP " + res.status);
+                    const blob = await res.blob();
+                    if (blob.size < 500) {
+                        const txt = await blob.text();
+                        if (txt.includes('Invalid') || txt.includes('error')) {
+                            throw new Error(txt);
+                        }
+                    }
+                    const mp4Blob = new Blob([blob], { type: 'video/mp4' });
+                    const blobUrl = URL.createObjectURL(mp4Blob);
+                    this.currentVideoBlobUrl = blobUrl;
+                    videoEl.src = blobUrl;
+                    videoEl.load();
+                    videoEl.play().catch(() => {});
+                })
+                .catch(err => {
+                    console.warn("Blob conversion fallback:", err);
+                    videoEl.play().catch(() => {});
+                });
         }
         
         // Setup download button
@@ -568,16 +594,27 @@ const I2V = {
             
             newBtn.addEventListener('click', async () => {
                 try {
-                    const response = await fetch(videoUrl);
+                    const downloadSource = this.currentVideoBlobUrl || videoUrl;
+                    const response = await fetch(downloadSource);
                     const blob = await response.blob();
-                    const url = window.URL.createObjectURL(blob);
+                    if (blob.size < 500) {
+                        const txt = await blob.text();
+                        if (txt.includes('Invalid') || txt.includes('error')) {
+                            throw new Error("File tidak valid: " + txt);
+                        }
+                    }
+                    const mp4Blob = new Blob([blob], { type: 'video/mp4' });
+                    const url = window.URL.createObjectURL(mp4Blob);
                     const a = document.createElement('a');
                     a.style.display = 'none';
                     a.href = url;
                     a.download = `nova-i2v-${Date.now()}.mp4`;
                     document.body.appendChild(a);
                     a.click();
-                    window.URL.revokeObjectURL(url);
+                    setTimeout(() => {
+                        document.body.removeChild(a);
+                        window.URL.revokeObjectURL(url);
+                    }, 500);
                     Utils.toast('Download video berhasil!', 'success');
                 } catch (e) {
                     window.open(videoUrl, '_blank');

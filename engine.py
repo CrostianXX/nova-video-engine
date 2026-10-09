@@ -386,7 +386,7 @@ def main():
             for clip in video_clips:
                 f.write(f"file '{clip}'\n")
         
-        subprocess.run("ffmpeg -f concat -safe 0 -i list.txt -c copy hasil_akhir.mp4 -y", shell=True)
+        subprocess.run("ffmpeg -f concat -safe 0 -i list.txt -c:v libx264 -pix_fmt yuv420p -movflags +faststart -an hasil_akhir.mp4 -y", shell=True)
         print("🎉 Video Panjang Berhasil Dibuat!")
 
 if __name__ == "__main__":
