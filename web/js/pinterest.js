@@ -92,9 +92,13 @@ const Pinterest = {
         // Triggers from Dashboard
         const btnI2I = document.getElementById('pinterestSearchBtnI2I');
         const btnI2V = document.getElementById('pinterestSearchBtnI2V');
+        const pickerI2I = document.getElementById('pinterestPickerBtnI2I');
+        const pickerI2V = document.getElementById('pinterestPickerBtnI2V');
         
-        if (btnI2I) btnI2I.addEventListener('click', () => this.openSearch('i2i'));
-        if (btnI2V) btnI2V.addEventListener('click', () => this.openSearch('i2v'));
+        if (btnI2I) btnI2I.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); this.openSearch('i2i'); });
+        if (pickerI2I) pickerI2I.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); this.openSearch('i2i'); });
+        if (btnI2V) btnI2V.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); this.openSearch('i2v'); });
+        if (pickerI2V) pickerI2V.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); this.openSearch('i2v'); });
         
         // Modal Events
         if (this.closeBtn) this.closeBtn.addEventListener('click', () => this.closeSearch());
@@ -213,7 +217,7 @@ const Pinterest = {
         this.switchToSearchView();
         this.searchInput.focus();
         if (this.grid.innerHTML === '') {
-            const initialQuery = (this.searchInput.value && this.searchInput.value.trim()) || 'zee';
+            const initialQuery = (this.searchInput.value && this.searchInput.value.trim()) || 'aesthetic';
             this.performSearch(initialQuery, false);
         }
     },
@@ -455,7 +459,7 @@ const Pinterest = {
             
             div.innerHTML = `
                 <div style="position: relative; overflow: hidden; border-radius: 16px;">
-                    <img src="${thumbUrl}" alt="${imgObj.title}" loading="lazy" onerror="this.onerror=null; this.src='${imgObj.url}';">
+                    <img src="${thumbUrl}" alt="${imgObj.title}" loading="lazy" referrerpolicy="no-referrer" onerror="this.onerror=null; this.src='${imgObj.url}';">
                     
                     ${isLastVisited ? `<div class="pinterest-last-visited-badge">Last visited</div>` : ''}
                     
@@ -845,17 +849,37 @@ const Pinterest = {
                         reader.readAsDataURL(file);
                     }
                 }
+            if (target === 'i2i') {
+                if (window.App && typeof App.switchPage === 'function') {
+                    App.switchPage('image');
+                }
+            } else if (target === 'i2v') {
+                if (window.App && typeof App.switchPage === 'function') {
+                    App.switchPage('i2v');
+                }
             }
             
-            if (typeof Admin !== 'undefined') Admin.showToast('Gambar Pinterest berhasil dimasukkan ke editor!', true);
+            if (typeof Utils !== 'undefined' && Utils.toast) {
+                Utils.toast('Gambar Pinterest berhasil dimasukkan ke editor!', 'success');
+            } else if (typeof Admin !== 'undefined' && Admin.showToast) {
+                Admin.showToast('Gambar Pinterest berhasil dimasukkan ke editor!', true);
+            }
             
         } catch (e) {
             console.error('Error fetching image:', e);
-            if (typeof Admin !== 'undefined') Admin.showToast('Gagal memuat gambar: ' + e.message, false);
+            if (typeof Utils !== 'undefined' && Utils.toast) {
+                Utils.toast('Gagal memuat gambar: ' + e.message, 'error');
+            } else if (typeof Admin !== 'undefined' && Admin.showToast) {
+                Admin.showToast('Gagal memuat gambar: ' + e.message, false);
+            }
         }
     }
 };
 
-document.addEventListener('DOMContentLoaded', () => {
+window.Pinterest = Pinterest;
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => Pinterest.init());
+} else {
     Pinterest.init();
-});
+}

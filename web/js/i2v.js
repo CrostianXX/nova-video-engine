@@ -135,6 +135,13 @@ const I2V = {
         // Settings UI
         this.durationSlider = document.getElementById('i2vDuration');
         this.durationValue = document.getElementById('i2vDurationValue');
+        if (this.durationSlider) {
+            const initialDur = parseFloat(this.durationSlider.value) || 30;
+            this.settings.duration = initialDur;
+            if (this.durationValue) {
+                this.durationValue.textContent = Math.round(initialDur).toString();
+            }
+        }
 
         this.bindEvents();
         this.restoreState();
@@ -297,7 +304,7 @@ const I2V = {
             const val = parseFloat(e.target.value);
             this.settings.duration = val;
             if (this.durationValue) {
-                this.durationValue.textContent = val.toFixed(1);
+                this.durationValue.textContent = Math.round(val).toString();
             }
         });
 
@@ -444,7 +451,7 @@ const I2V = {
                         ref: 'main',
                         inputs: {
                             prompt: prompt,
-                            loops: Math.ceil(this.settings.duration / 5).toString(),
+                            loops: Math.max(1, Math.round((this.durationSlider ? parseFloat(this.durationSlider.value) : (this.settings.duration || 30)) / 5)).toString(),
                             image_url: imageUrl
                         }
                     }
@@ -487,7 +494,7 @@ const I2V = {
                     // Fetch the latest_video.txt
                     const rawRes = await fetch('https://raw.githubusercontent.com/CrostianXX/nova-video-engine/main/latest_video.txt?t=' + Date.now());
                     finalVideoUrl = await rawRes.text();
-                    finalVideoUrl = finalVideoUrl.trim();
+                    finalVideoUrl = finalVideoUrl.split('\n')[0].trim();
                     
                     if (!finalVideoUrl || !finalVideoUrl.startsWith('http')) {
                         throw new Error(finalVideoUrl ? ("Pabrik mengembalikan status: " + finalVideoUrl) : "Gagal mengambil link video dari pabrik.");
